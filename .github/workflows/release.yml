@@ -4,6 +4,9 @@ on:
   release:
     types: [ released ]
 
+env:
+  MODULE_NAME: pond
+
 jobs:
   build:
 
@@ -22,7 +25,6 @@ jobs:
 
       - name: Check the version and build the package
         run: |
-          MODULE_NAME=stash
           RELEASE=${{ steps.get_version.outputs.version-without-v }}
           VERSION=$(python -c "from pathlib import Path; import runpy; folder, = {d.parent for d in Path().resolve().glob('*/__init__.py') if d.parent.is_dir() and (d.parent / '__version__.py').exists()}; print(runpy.run_path(folder / '__version__.py')['__version__'])")
           MATCH=$(pip index versions $MODULE_NAME | grep "Available versions:" | grep $VERSION) || echo

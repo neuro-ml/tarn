@@ -1,8 +1,8 @@
 import filecmp
 from pathlib import Path
 
-from stash import Storage, StorageLevel, Disk
-from stash.config import init_storage, StorageConfig
+from pond import Storage, StorageLevel, Disk
+from pond.config import init_storage, StorageConfig
 
 
 def test_storage_fixture(storage_factory):

@@ -1,4 +1,4 @@
-from stash.tools.usage import StatUsage
+from pond.tools.usage import StatUsage
 
 
 def test_permissions(temp_dir):

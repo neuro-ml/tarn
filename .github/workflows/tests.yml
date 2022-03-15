@@ -3,7 +3,7 @@ name: Python package
 on: [ push, pull_request ]
 
 env:
-  MODULE_NAME: stash
+  MODULE_NAME: pond
 
 jobs:
   build:

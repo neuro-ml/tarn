@@ -6,9 +6,9 @@ from typing import Iterator
 
 import pytest
 
-from stash import Storage, Disk
-from stash.cache import CacheStorage, CacheIndex
-from stash.config import init_storage, StorageConfig
+from pond import Storage, Disk
+from pond.cache import CacheStorage, CacheIndex
+from pond.config import init_storage, StorageConfig
 
 pytest_plugins = 'cache_fixtures',
 

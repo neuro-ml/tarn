@@ -1,6 +1,6 @@
 import pytest
 
-from stash import SSHLocation, ReadError
+from pond import SSHLocation, ReadError
 
 
 def load_text(path):

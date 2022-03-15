@@ -1,7 +1,7 @@
 import os
 
-from stash.cache import CacheStorage, CacheIndex, JsonSerializer
-from stash.config import init_storage, StorageConfig, ToolConfig
+from pond.cache import CacheStorage, CacheIndex, JsonSerializer
+from pond.config import init_storage, StorageConfig, ToolConfig
 
 
 def some_func(x):

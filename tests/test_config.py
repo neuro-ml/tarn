@@ -1,6 +1,6 @@
 import pytest
 
-from stash.config import StorageConfig, HashConfig
+from pond.config import StorageConfig, HashConfig
 
 
 def test_config():

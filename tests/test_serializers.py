@@ -1,6 +1,6 @@
 import numpy as np
 
-from stash.cache.serializers import JsonSerializer, NumpySerializer, PickleSerializer, DictSerializer
+from pond.cache.serializers import JsonSerializer, NumpySerializer, PickleSerializer, DictSerializer
 
 
 def test_serializers(disk_cache_factory):

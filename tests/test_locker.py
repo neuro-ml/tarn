@@ -14,7 +14,7 @@ def test_parallel_read_threads(storage_factory, subtests, redis_hostname):
     sleep_time = 1
     lockers = [
         {'name': 'GlobalThreadLocker'},
-        {'name': 'RedisLocker', 'args': [redis_hostname], 'kwargs': {'prefix': 'stash.tests', 'expire': 10}},
+        {'name': 'RedisLocker', 'args': [redis_hostname], 'kwargs': {'prefix': 'pond.tests', 'expire': 10}},
     ]
 
     for locker in lockers:
@@ -38,7 +38,7 @@ def test_parallel_read_processes(storage_factory, redis_hostname):
         storage.read(lambda x: time.sleep(1), key)
 
     with storage_factory({'name': 'RedisLocker', 'args': [redis_hostname],
-                          'kwargs': {'prefix': 'stash.tests', 'expire': 10}}) as storage:
+                          'kwargs': {'prefix': 'pond.tests', 'expire': 10}}) as storage:
         key = storage.write(__file__)
 
         start = time.time()

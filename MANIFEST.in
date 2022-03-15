@@ -1,4 +1,4 @@
 include *.md
 include requirements.txt
 include LICENSE
-recursive-include stash *.py
+recursive-include pond *.py
