@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Tuple, Callable, Any, Sequence, Union, NamedTuple, Final
+from typing import Iterable, Tuple, Callable, Any, Sequence, Union, NamedTuple
 
 from tqdm.auto import tqdm
 
@@ -94,7 +94,7 @@ class StorageBase:
                 if loc.hash != reference:
                     raise ValueError('Storage locations have inconsistent hash algorithms')
 
-        self.hash: Final = reference
+        self.hash = reference
         self.levels: Sequence[StorageLevel] = levels
         self.remote: Sequence[RemoteStorage] = tuple(remote)
 
