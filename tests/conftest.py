@@ -7,6 +7,7 @@ from typing import Iterator
 import pytest
 
 from stash import Storage, Disk
+from stash.cache import CacheStorage, CacheIndex
 from stash.config import init_storage, StorageConfig
 
 pytest_plugins = 'cache_fixtures',
@@ -48,14 +49,25 @@ def storage_factory():
         with tempfile.TemporaryDirectory() as root:
             roots = []
             for name in names:
-                root = Path(root) / name
-                roots.append(root)
-                init_storage(
-                    StorageConfig(
-                        hash='blake2b', levels=[1, 63], locker=locker,
-                    ), root, group=group,
-                )
+                local = Path(root) / name
+                roots.append(local)
+                init_storage(StorageConfig(hash='blake2b', levels=[1, 63], locker=locker), local, group=group)
 
-            yield Storage(list(map(Disk, roots)))
+            yield Storage(*map(Disk, roots))
+
+    return factory
+
+
+@pytest.fixture
+def disk_cache_factory(storage_factory):
+    @contextmanager
+    def factory(serializer) -> Iterator[CacheStorage]:
+        with tempfile.TemporaryDirectory() as root, storage_factory() as storage:
+            roots = []
+            local = Path(root) / 'cache'
+            roots.append(local)
+            init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
+
+            yield CacheStorage(*(CacheIndex(x, storage, serializer) for x in roots))
 
     return factory
