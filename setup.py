@@ -9,7 +9,7 @@ Programming Language :: Python :: 3.7
 Programming Language :: Python :: 3.8
 Programming Language :: Python :: 3.9'''
 
-name = 'pond'
+name = 'tarn'
 root = Path(__file__).parent
 with open(root / 'requirements.txt', encoding='utf-8') as file:
     requirements = file.read().splitlines()
@@ -25,8 +25,8 @@ setup(
     description='A hashmap-based storage on local and remote disks',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/neuro-ml/pond',
-    download_url='https://github.com/neuro-ml/pond/archive/v%s.tar.gz' % version,
+    url='https://github.com/neuro-ml/tarn',
+    download_url='https://github.com/neuro-ml/tarn/archive/v%s.tar.gz' % version,
     keywords=['storage', 'cache', 'invalidation'],
     classifiers=classifiers.splitlines(),
     install_requires=requirements,

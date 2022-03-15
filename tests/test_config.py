@@ -1,6 +1,6 @@
 import pytest
 
-from pond.config import StorageConfig, HashConfig
+from tarn.config import StorageConfig, HashConfig
 
 
 def test_config():

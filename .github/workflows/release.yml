@@ -5,7 +5,7 @@ on:
     types: [ released ]
 
 env:
-  MODULE_NAME: pond
+  MODULE_NAME: tarn
 
 jobs:
   build:

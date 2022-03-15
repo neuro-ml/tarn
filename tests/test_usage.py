@@ -1,4 +1,4 @@
-from pond.tools.usage import StatUsage
+from tarn.tools.usage import StatUsage
 
 
 def test_permissions(temp_dir):

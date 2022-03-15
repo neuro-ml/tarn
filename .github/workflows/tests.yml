@@ -3,7 +3,7 @@ name: Python package
 on: [ push, pull_request ]
 
 env:
-  MODULE_NAME: pond
+  MODULE_NAME: tarn
 
 jobs:
   build:

@@ -1,7 +1,7 @@
 import os
 
-from pond.cache import CacheStorage, CacheIndex, JsonSerializer
-from pond.config import init_storage, StorageConfig, ToolConfig
+from tarn.cache import CacheStorage, CacheIndex, JsonSerializer
+from tarn.config import init_storage, StorageConfig, ToolConfig
 
 
 def some_func(x):

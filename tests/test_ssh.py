@@ -1,6 +1,6 @@
 import pytest
 
-from pond import SSHLocation, ReadError
+from tarn import SSHLocation, ReadError
 
 
 def load_text(path):

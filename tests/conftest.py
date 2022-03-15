@@ -6,9 +6,9 @@ from typing import Iterator
 
 import pytest
 
-from pond import Storage, Disk
-from pond.cache import CacheStorage, CacheIndex
-from pond.config import init_storage, StorageConfig
+from tarn import Storage, Disk
+from tarn.cache import CacheStorage, CacheIndex
+from tarn.config import init_storage, StorageConfig
 
 pytest_plugins = 'cache_fixtures',
 

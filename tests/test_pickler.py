@@ -7,8 +7,8 @@ from pickler_test_helpers import functions
 from pickler_test_helpers import functions2
 from pickler_test_helpers import classes
 from pickler_test_helpers import classes2
-from pond.cache import is_stable, is_unstable
-from pond.cache.pickler import dumps, AVAILABLE_VERSIONS
+from tarn.cache import is_stable, is_unstable
+from tarn.cache.pickler import dumps, AVAILABLE_VERSIONS
 
 
 def assert_same_hash(reference, version, obj, references):

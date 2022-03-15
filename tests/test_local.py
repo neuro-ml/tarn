@@ -1,8 +1,8 @@
 import filecmp
 from pathlib import Path
 
-from pond import Storage, StorageLevel, Disk
-from pond.config import init_storage, StorageConfig
+from tarn import Storage, StorageLevel, Disk
+from tarn.config import init_storage, StorageConfig
 
 
 def test_storage_fixture(storage_factory):
