@@ -1,0 +1,9 @@
+numpy
+cloudpickle==2.0.*
+paramiko==2.*
+scp
+tqdm
+redis
+pyyaml
+humanfriendly
+pydantic
