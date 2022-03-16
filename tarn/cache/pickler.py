@@ -34,13 +34,19 @@ class VersionedClass(NamedTuple):
     version: Any
 
 
+try:
+    from connectome.cache.pickler import VersionedClass as OldVersionedClass
+except ImportError:
+    OldVersionedClass = VersionedClass
+
+
 class PickleError(TypeError):
     pass
 
 
 # new invalidation bugs will inevitably arise
 # versioning will help diminish the pain from transitioning between updates
-AVAILABLE_VERSIONS = 0,
+AVAILABLE_VERSIONS = 0, 1
 *PREVIOUS_VERSIONS, LATEST_VERSION = AVAILABLE_VERSIONS
 
 _custom = types.CodeType, types.FunctionType, type, property
@@ -237,7 +243,8 @@ class PortablePickler(Pickler):
             Pickler.save_global(self, obj, name=name)
 
         elif hasattr(obj, VERSION_METHOD):
-            self.save(VersionedClass)
+            # TODO: legacy support
+            self.save(OldVersionedClass if self.version == 0 else VersionedClass)
             version = getattr(obj, VERSION_METHOD)()
             Pickler.save_global(self, obj)
             self.save(version)

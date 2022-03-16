@@ -3,6 +3,8 @@ from hashlib import sha256
 
 import numpy as np
 import pytest
+from tarn.cache.compat import STABLE_OBJECTS, UNSTABLE_OBJECTS
+
 from pickler_test_helpers import functions
 from pickler_test_helpers import functions2
 from pickler_test_helpers import classes
@@ -12,7 +14,6 @@ from tarn.cache.pickler import dumps, AVAILABLE_VERSIONS
 
 
 def assert_same_hash(reference, version, obj, references):
-    return
     key = version, obj
     if key in references:
         values = references[key]
@@ -135,6 +136,10 @@ def test_stable(version, pickle_references):
     assert dumper(functions.identity) == not_stable
     is_stable(functions.identity)
     assert dumper(functions.identity) == stable
+
+    # reset the state
+    STABLE_OBJECTS.clear()
+    UNSTABLE_OBJECTS.clear()
 
 
 @pytest.mark.parametrize('version', AVAILABLE_VERSIONS)
