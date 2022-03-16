@@ -60,7 +60,7 @@ class CacheIndex(DiskBase):
         base = self.root / key_to_relative(key, self.levels)
         with self.locker.read(key, base):
             if not base.exists():
-                logger.info('Key %s not found', key)
+                logger.info('Key %s: path not found "%s"', key, base)
                 return None, False
 
             hash_path = base / HASH_FILENAME
