@@ -21,7 +21,7 @@ class UnknownHostException(SSHException):
 
 class SSHLocation(RemoteStorage):
     def __init__(self, hostname: str, root: PathLike, port: int = SSH_PORT, username: str = None, password: str = None,
-                 key: Union[Path, Sequence[Path]] = ()):
+                 key: Union[Path, Sequence[Path]] = (), optional: bool = False):
         ssh = SSHClient()
         ssh.load_system_host_keys()
         # TODO: not safe
@@ -45,6 +45,7 @@ class SSHLocation(RemoteStorage):
         self.root = Path(root)
         self.ssh = ssh
         self.levels = self.hash = None
+        self.optional = optional
 
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
               config: HashConfig) -> Sequence[Tuple[Any, bool]]:
@@ -63,10 +64,11 @@ class SSHLocation(RemoteStorage):
         try:
             with SCPClient(self.ssh.get_transport()) as scp, tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
+                if keys and not self._get_config(scp, config):
+                    return [(None, False)] * len(keys)
 
                 for key in keys:
                     try:
-                        self._get_config(scp, config)
                         scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
                         value = store(key, source)
                         shutil.rmtree(source)
@@ -81,11 +83,19 @@ class SSHLocation(RemoteStorage):
         return results
 
     def _get_config(self, scp, config):
-        if self.levels is None:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp = Path(temp_dir) / 'config.yml'
-                scp.get(str(self.root / 'config.yml'), str(temp))
-                remote_config = load_config(temp_dir)
-                self.hash, self.levels = remote_config.hash, remote_config.levels
+        try:
+            if self.levels is None:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    temp = Path(temp_dir) / 'config.yml'
+                    scp.get(str(self.root / 'config.yml'), str(temp))
+                    remote_config = load_config(temp_dir)
+                    self.hash, self.levels = remote_config.hash, remote_config.levels
 
-        assert self.hash == config, (self.hash, config)
+            assert self.hash == config, (self.hash, config)
+            return True
+
+        except SSHException:
+            if not self.optional:
+                raise
+
+            return False

@@ -20,7 +20,7 @@ class UsageTracker(ABC):
         """ Deletes the usage time for a given ``key`` """
 
     @abstractmethod
-    def last_used(self, key: Key, base: Path) -> Union[datetime, None]:
+    def get(self, key: Key, base: Path) -> Union[datetime, None]:
         """ Deletes the usage time for a given ``key`` """
 
 
@@ -31,21 +31,32 @@ class DummyUsage(UsageTracker):
     def delete(self, key: Key, base: Path):
         pass
 
-    def last_used(self, key: Key, base: Path) -> Union[datetime, None]:
+    def get(self, key: Key, base: Path) -> Union[datetime, None]:
         return None
 
 
 class StatUsage(UsageTracker):
     def update(self, key: Key, base: Path):
-        path = base / '.time'
-        missing = not path.exists()
-        path.touch(exist_ok=True)
+        mark = self._mark(base)
+        missing = not mark.exists()
+        mark.touch(exist_ok=True)
         if missing:
-            os.chmod(path, 0o777)
-            shutil.chown(path, group=base.group())
+            os.chmod(mark, 0o777)
+            shutil.chown(mark, group=base.group())
 
     def delete(self, key: Key, base: Path):
-        os.remove(base / '.time')
+        mark = self._mark(base)
+        if mark.exists():
+            os.remove(mark)
 
-    def last_used(self, key: Key, base: Path) -> Union[datetime, None]:
-        return datetime.fromtimestamp((base / '.time').stat().st_mtime)
+    def get(self, key: Key, base: Path) -> Union[datetime, None]:
+        mark = self._mark(base)
+        if mark.exists():
+            stamp = mark.stat().st_mtime
+        else:
+            stamp = base.stat().st_mtime
+        return datetime.fromtimestamp(stamp)
+
+    @staticmethod
+    def _mark(base: Path):
+        return base / '.time'

@@ -60,6 +60,7 @@ class CacheIndex(DiskBase):
         base = self.root / key_to_relative(key, self.levels)
         with self.locker.read(key, base):
             if not base.exists():
+                logger.info('Key %s: path not found "%s"', key, base)
                 return None, False
 
             hash_path = base / HASH_FILENAME
@@ -69,8 +70,8 @@ class CacheIndex(DiskBase):
                 try:
                     # couldn't find the hash - the cache is corrupted
                     return reader(base), True
-                except ReadError:
-                    pass
+                except ReadError as e:
+                    logger.info('Error while reading %s: %s: %s', key, type(e).__name__, e)
 
         # or it is corrupted, in which case we can remove it
         with self.locker.write(key, base):
@@ -101,7 +102,9 @@ class CacheIndex(DiskBase):
         shutil.rmtree(source)
 
     def _cleanup_corrupted(self, folder, digest):
-        warnings.warn(f'Corrupted storage at {self.root} for key {digest}. Cleaning up.', RuntimeWarning)
+        message = f'Corrupted storage at {self.root} for key {digest}. Cleaning up.'
+        warnings.warn(message, RuntimeWarning)
+        logger.warning(message)
         shutil.rmtree(folder)
 
 

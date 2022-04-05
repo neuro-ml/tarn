@@ -60,7 +60,7 @@ class CacheStorage:
             key = self.prepare(key)
 
         digest = key.digest
-        logger.info('Saving key %s', key)
+        logger.info('Saving key %s', digest)
         if not self.storage.write(digest, value, key.pickled):
             if error:
                 raise WriteError('The file could not be written to any storage')
