@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Tuple, Callable, Any, Sequence, Union, NamedTuple
+from typing import Iterable, Tuple, Callable, Any, Sequence, Union, NamedTuple, Optional
 
 from tqdm.auto import tqdm
 
@@ -79,6 +79,7 @@ class StorageLevel(NamedTuple):
     locations: Sequence[LocalStorage]
     write: bool
     replicate: bool
+    name: Optional[str] = None
 
 
 class StorageBase:
