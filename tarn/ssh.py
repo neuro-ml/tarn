@@ -94,7 +94,7 @@ class SSHLocation(RemoteStorage):
             assert self.hash == config, (self.hash, config)
             return True
 
-        except SSHException:
+        except SCPException:
             if not self.optional:
                 raise
 
