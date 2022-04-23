@@ -11,7 +11,7 @@ from ..local import Storage, DiskBase
 from ..interface import Key
 from ..utils import create_folders, to_read_only, copy_file, match_files
 from ..exceptions import StorageCorruption, ReadError
-from .serializers import Serializer
+from .serializers import Serializer, SerializerError
 from .compat import BadGzipFile
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,15 @@ class CacheIndex(DiskBase):
         to_read_only(base / HASH_FILENAME, self.permissions, self.group)
 
     def _read(self, key, context):
-        return self._read_entry(key, context, lambda base: self.serializer.load(base / DATA_FOLDER, self.storage))
+        def load(base):
+            try:
+                return self.serializer.load(base / DATA_FOLDER, self.storage)
+            except SerializerError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f'An error occurred while loading the cache for "{key}" at {base}') from e
+
+        return self._read_entry(key, context, load)
 
     def replicate_to(self, key, context, store):
         self._read_entry(key, context, lambda base: store(key, base))
