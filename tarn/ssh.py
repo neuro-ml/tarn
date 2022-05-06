@@ -70,10 +70,14 @@ class SSHLocation(RemoteStorage):
                 for key in keys:
                     try:
                         scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
-                        value = store(key, source)
-                        shutil.rmtree(source)
+                        if not source.exists():
+                            results.append((None, False))
 
-                        results.append((value, True))
+                        else:
+                            value = store(key, source)
+                            shutil.rmtree(source)
+                            results.append((value, True))
+
                     except (SCPException, socket.timeout):
                         results.append((None, False))
 

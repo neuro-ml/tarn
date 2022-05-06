@@ -15,7 +15,14 @@ class Reason(Enum):
 
 
 def to_read_only(path: Path, permissions, group):
-    os.chmod(path, 0o444 & permissions)
+    adjust_permissions(path, permissions, group, read_only=True)
+
+
+def adjust_permissions(path: Path, permissions, group, read_only: bool = False):
+    if read_only:
+        permissions = 0o444 & permissions
+
+    os.chmod(path, permissions)
     shutil.chown(path, group=group)
 
 

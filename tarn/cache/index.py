@@ -3,13 +3,14 @@ import logging
 import os
 import shutil
 import warnings
+from itertools import chain
 from pathlib import Path
 from typing import Any
 
 from ..digest import key_to_relative
 from ..local import Storage, DiskBase
 from ..interface import Key
-from ..utils import create_folders, to_read_only, copy_file, match_files
+from ..utils import create_folders, to_read_only, copy_file, match_files, adjust_permissions
 from ..exceptions import StorageCorruption, ReadError
 from .serializers import Serializer, SerializerError
 from .compat import BadGzipFile
@@ -45,7 +46,11 @@ class CacheIndex(DiskBase):
 
     def _replicate(self, base: Path, key: Key, source: Path, context):
         # data
-        shutil.copytree(source / DATA_FOLDER, base / DATA_FOLDER)
+        destination = base / DATA_FOLDER
+        shutil.copytree(source / DATA_FOLDER, destination)
+        for dst in chain([destination], destination.rglob('*')):
+            adjust_permissions(dst, self.permissions, self.group, read_only=not dst.is_dir())
+
         # meta
         copy_file(source / HASH_FILENAME, base / HASH_FILENAME)
         to_read_only(base / HASH_FILENAME, self.permissions, self.group)
@@ -99,7 +104,7 @@ class CacheIndex(DiskBase):
         for file in source.glob('**/*'):
             target = destination / file.relative_to(source)
             if file.is_dir():
-                target.mkdir(parents=True)
+                create_folders(target, self.permissions, self.group)
 
             else:
                 with open(target, 'w') as fd:
