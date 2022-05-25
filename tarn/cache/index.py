@@ -59,7 +59,7 @@ class CacheIndex(DiskBase):
         def load(base):
             try:
                 return self.serializer.load(base / DATA_FOLDER, self.storage)
-            except SerializerError:
+            except (SerializerError, ReadError):
                 raise
             except Exception as e:
                 raise RuntimeError(f'An error occurred while loading the cache for "{key}" at {base}') from e
@@ -81,9 +81,9 @@ class CacheIndex(DiskBase):
             if hash_path.exists():
                 check_consistency(hash_path, context)
                 try:
-                    # couldn't find the hash - the cache is corrupted
                     return reader(base), True
                 except ReadError as e:
+                    # couldn't find the hash - the cache is corrupted
                     logger.info('Error while reading %s: %s: %s', key, type(e).__name__, e)
 
         # or it is corrupted, in which case we can remove it
