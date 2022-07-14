@@ -62,7 +62,7 @@ class ToolConfig(_NoExtra):
 
 class StorageConfig(_NoExtra):
     hash: HashConfig
-    levels: Sequence[int]
+    levels: Sequence[int] = None
     locker: ToolConfig = None
     size: ToolConfig = None
     usage: ToolConfig = None
@@ -94,6 +94,13 @@ class StorageConfig(_NoExtra):
     def normalize_tools(cls, v):
         if isinstance(v, str):
             v = {'name': v}
+        return v
+
+    @validator('levels')
+    def normalize_levels(cls, v, values):
+        # default levels are [1, n - 1]
+        if v is None:
+            v = 1, values['hash'].build().digest_size - 1
         return v
 
 
