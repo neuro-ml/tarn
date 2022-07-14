@@ -9,10 +9,10 @@ from paramiko import SSHClient, AuthenticationException, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
 from scp import SCPClient, SCPException
 
-from .config import load_config, HashConfig
-from .digest import key_to_relative
-from .interface import RemoteStorage, Key
-from .utils import PathLike
+from ..config import load_config, HashConfig
+from ..digest import key_to_relative
+from ..interface import RemoteStorage, Key
+from ..utils import PathLike
 
 
 class UnknownHostException(SSHException):
@@ -80,6 +80,8 @@ class SSHLocation(RemoteStorage):
 
                     except (SCPException, socket.timeout):
                         results.append((None, False))
+
+                    shutil.rmtree(source, ignore_errors=True)
 
         finally:
             self.ssh.close()
