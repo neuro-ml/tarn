@@ -38,7 +38,7 @@ def test_missing(storage_factory):
 
         key = remote.write(__file__)
         missing = key[:-1] + 'x'
-        result = location.fetch([key, missing], lambda *args: True, location.hash)
+        result = location.fetch([key, missing], lambda k, base: (base / 'data').exists(), location.hash)
         assert result == [(True, True), (None, False)]
 
 

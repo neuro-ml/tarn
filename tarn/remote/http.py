@@ -35,13 +35,9 @@ class HTTPLocation(RemoteStorage):
                 try:
                     self._fetch_tree(key_to_relative(key, self.levels), source)
 
-                    if not source.exists():
-                        results.append((None, False))
-
-                    else:
-                        value = store(key, source)
-                        shutil.rmtree(source)
-                        results.append((value, True))
+                    value = store(key, source)
+                    shutil.rmtree(source)
+                    results.append((value, True))
 
                 except requests.exceptions.ConnectionError:
                     results.append((None, False))
