@@ -96,11 +96,11 @@ class StorageConfig(_NoExtra):
             v = {'name': v}
         return v
 
-    @validator('levels')
+    @validator('levels', always=True)
     def normalize_levels(cls, v, values):
         # default levels are [1, n - 1]
         if v is None:
-            v = 1, values['hash'].build().digest_size - 1
+            v = 1, values['hash'].build()().digest_size - 1
         return v
 
 

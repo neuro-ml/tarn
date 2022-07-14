@@ -78,7 +78,7 @@ class SSHLocation(RemoteStorage):
                             shutil.rmtree(source)
                             results.append((value, True))
 
-                    except (SCPException, socket.timeout):
+                    except (SCPException, socket.timeout, SSHException):
                         results.append((None, False))
 
                     shutil.rmtree(source, ignore_errors=True)
