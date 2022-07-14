@@ -6,12 +6,11 @@ env:
   MODULE_NAME: tarn
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+        python-version: [ 3.6, 3.7, 3.8, 3.9, '3.10' ]
 
     services:
       redis:
@@ -66,6 +65,11 @@ jobs:
           cd ..
           echo $MODULE_PARENT
           echo "MODULE_PARENT=$(echo $MODULE_PARENT)" >> $GITHUB_ENV
+
+      - name: Setup docker-compose services
+        run: |
+          mkdir -p /tmp/http/storage
+          docker-compose -f tests/assets/docker-compose.yml up -d
 
       - name: Test with pytest
         run: |

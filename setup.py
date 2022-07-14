@@ -10,7 +10,7 @@ Programming Language :: Python :: 3.8
 Programming Language :: Python :: 3.9'''
 
 name = 'tarn'
-root = Path(__file__).parent
+root = Path(__file__).resolve().parent
 with open(root / 'requirements.txt', encoding='utf-8') as file:
     requirements = file.read().splitlines()
 with open(root / 'README.md', encoding='utf-8') as file:

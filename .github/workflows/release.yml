@@ -8,8 +8,7 @@ env:
   MODULE_NAME: tarn
 
 jobs:
-  build:
-
+  release:
     runs-on: ubuntu-latest
 
     steps:

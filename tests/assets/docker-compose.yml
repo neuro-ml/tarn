@@ -1,0 +1,10 @@
+services:
+  nginx:
+    build:
+      dockerfile: nginx.dockerfile
+      context: .
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /tmp/http/storage:/storage

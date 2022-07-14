@@ -42,7 +42,7 @@ from collections import ChainMap
 from enum import Enum
 from pickle import _Pickler as Pickler
 from types import ModuleType
-from typing import Union, Set
+from typing import Union, Set, TypeVar
 
 from cloudpickle import CloudPickler
 from cloudpickle.cloudpickle import _whichmodule, _extract_code_globals, _get_cell_contents, _lookup_module_and_qualname
@@ -150,8 +150,10 @@ STABLE_OBJECTS = WeakSet()
 UNSTABLE_OBJECTS = WeakSet()
 UNSTABLE_MODULES: Set[str] = set()
 
+T = TypeVar('T')
 
-def is_stable(obj):
+
+def is_stable(obj: T) -> T:
     """
     Decorator that opts out a function or class from being pickled during node hash calculation.
     Use it if you are sure that your function/class will never change in a way that might affect its behaviour.
@@ -163,7 +165,7 @@ def is_stable(obj):
     return obj
 
 
-def is_unstable(obj):
+def is_unstable(obj: T) -> T:
     if obj in STABLE_OBJECTS:
         warnings.warn('The object was already marked as stable')
         STABLE_OBJECTS.remove(obj)

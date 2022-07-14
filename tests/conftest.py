@@ -45,13 +45,19 @@ def chdir():
 @pytest.fixture
 def storage_factory():
     @contextmanager
-    def factory(locker=None, group=None, names=('storage',)) -> Iterator[Storage]:
-        with tempfile.TemporaryDirectory() as root:
+    def factory(locker=None, group=None, names=('storage',), root=None, exist_ok=False) -> Iterator[Storage]:
+        with tempfile.TemporaryDirectory() as _root:
+            if root is None:
+                root = _root
+            root = Path(root)
+
             roots = []
             for name in names:
-                local = Path(root) / name
+                local = root / name
                 roots.append(local)
-                init_storage(StorageConfig(hash='blake2b', levels=[1, 63], locker=locker), local, group=group)
+                init_storage(StorageConfig(
+                    hash='blake2b', levels=[1, 63], locker=locker
+                ), local, exist_ok=exist_ok, group=group)
 
             yield Storage(*map(Disk, roots))
 
