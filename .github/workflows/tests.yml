@@ -68,7 +68,7 @@ jobs:
 
       - name: Setup docker-compose services
         run: |
-          mkdir -p /tmp/http
+          mkdir -p /tmp/http/storage
           docker-compose -f tests/assets/docker-compose.yml up -d
 
       - name: Test with pytest
