@@ -2,6 +2,7 @@ import gzip
 import logging
 import os
 import shutil
+import tempfile
 import warnings
 from itertools import chain
 from pathlib import Path
@@ -18,7 +19,6 @@ from .compat import BadGzipFile
 logger = logging.getLogger(__name__)
 
 DATA_FOLDER = 'data'
-TEMP_FOLDER = 'temp'
 HASH_FILENAME = 'hash.bin'
 GZIP_COMPRESSION = 1
 
@@ -36,13 +36,13 @@ class CacheIndex(DiskBase):
         match_files(base / HASH_FILENAME, folder / HASH_FILENAME)
 
     def _write(self, base: Path, key: Key, value: Any, context: Any):
-        data_folder, temp_folder = base / DATA_FOLDER, base / TEMP_FOLDER
-        create_folders(data_folder, self.permissions, self.group)
-        create_folders(temp_folder, self.permissions, self.group)
+        with tempfile.TemporaryDirectory() as temp_folder:
+            data_folder, temp_folder = base / DATA_FOLDER, Path(temp_folder)
+            create_folders(data_folder, self.permissions, self.group)
 
-        self.serializer.save(value, temp_folder)
-        self._mirror_to_storage(temp_folder, data_folder)
-        self._save_meta(base, context)
+            self.serializer.save(value, temp_folder)
+            self._mirror_to_storage(temp_folder, data_folder)
+            self._save_meta(base, context)
 
     def _replicate(self, base: Path, key: Key, source: Path, context):
         # data
