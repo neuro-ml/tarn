@@ -112,8 +112,6 @@ class CacheIndex(DiskBase):
                 os.remove(file)
                 to_read_only(target, self.permissions, self.group)
 
-        shutil.rmtree(source)
-
     def _cleanup_corrupted(self, folder, digest):
         message = f'Corrupted storage at {self.root} for key {digest}. Cleaning up.'
         warnings.warn(message, RuntimeWarning)
