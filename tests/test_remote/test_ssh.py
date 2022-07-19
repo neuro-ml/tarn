@@ -1,5 +1,5 @@
 import pytest
-from paramiko.ssh_exception import NoValidConnectionsError
+from paramiko.ssh_exception import NoValidConnectionsError, SSHException
 
 from tarn import SSHLocation, ReadError
 
@@ -30,7 +30,7 @@ def test_storage_ssh(storage_factory):
 
 
 def test_wrong_host():
-    with pytest.raises(NoValidConnectionsError):
+    with pytest.raises((NoValidConnectionsError, SSHException)):
         SSHLocation('localhost', '/').fetch(['some-key'], lambda *args: True, None)
     assert SSHLocation('localhost', '/', optional=True).fetch(
         ['some-key'], lambda *args: True, None) == [(None, False)]
