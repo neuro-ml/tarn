@@ -7,6 +7,7 @@ from typing import Union, Sequence, Callable, Any, Tuple
 import paramiko
 from paramiko import SSHClient, AuthenticationException, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
+from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
 from ..config import load_config, HashConfig
@@ -50,7 +51,6 @@ class SSHLocation(RemoteStorage):
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
               config: HashConfig) -> Sequence[Tuple[Any, bool]]:
 
-        results = []
         try:
             self.ssh.connect(
                 self.hostname, self.port, self.username, self.password, key_filename=self.key,
@@ -60,7 +60,13 @@ class SSHLocation(RemoteStorage):
             raise AuthenticationException(self.hostname) from None
         except socket.gaierror:
             raise UnknownHostException(self.hostname) from None
+        except (SSHException, NoValidConnectionsError):
+            if not self.optional:
+                raise
 
+            return [(None, False)] * len(keys)
+
+        results = []
         try:
             with SCPClient(self.ssh.get_transport()) as scp, tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
