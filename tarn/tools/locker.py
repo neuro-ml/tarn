@@ -6,6 +6,7 @@ from pathlib import Path
 from threading import Lock
 
 from redis import Redis
+from redis.exceptions import NoScriptError
 
 from ..utils import Key
 
@@ -110,6 +111,10 @@ class RedisLocker(Locker):
         self._prefix = prefix + ':'
         self._expire = expire
         self._volume_key = f'{prefix}.V'
+        self._update_scripts()
+
+    def _update_scripts(self):
+        expire = self._expire
         # TODO: how slow are these checks?
         # language=Lua
         self._stop_writing = self._redis.script_load('''
@@ -141,17 +146,24 @@ class RedisLocker(Locker):
             redis.call('set', KEYS[1], lock - 1, 'EX', {expire})
         end''')
 
+    def _safe_eval(self, *args):
+        try:
+            return self._redis.evalsha(*args)
+        except NoScriptError:
+            self._update_scripts()
+            return self._redis.evalsha(*args)
+
     def start_writing(self, key: Key, base: Path) -> bool:
         return bool(self._redis.set(self._prefix + key, -1, nx=True, ex=self._expire))
 
     def stop_writing(self, key: Key, base: Path):
-        self._redis.evalsha(self._stop_writing, 1, self._prefix + key)
+        self._safe_eval(self._stop_writing, 1, self._prefix + key)
 
     def start_reading(self, key: Key, base: Path) -> bool:
-        return bool(self._redis.evalsha(self._start_reading, 1, self._prefix + key))
+        return bool(self._safe_eval(self._start_reading, 1, self._prefix + key))
 
     def stop_reading(self, key: Key, base: Path):
-        self._redis.evalsha(self._stop_reading, 1, self._prefix + key)
+        self._safe_eval(self._stop_reading, 1, self._prefix + key)
 
     @classmethod
     def from_url(cls, url: str, prefix: str, expire: int):
