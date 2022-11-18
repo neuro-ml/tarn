@@ -1,14 +1,13 @@
-from abc import ABC, abstractmethod
-from functools import partial
-from typing import Union, Dict, Callable
-
-from contextlib import suppress
-from gzip import GzipFile
-from pathlib import Path
-
-import os
 import json
 import pickle
+import shutil
+from abc import ABC, abstractmethod
+from contextlib import suppress
+from functools import partial
+from gzip import GzipFile
+from pathlib import Path
+from typing import Union, Dict, Callable
+
 import numpy as np
 
 from ..local import Storage
@@ -162,11 +161,20 @@ class DictSerializer(Serializer):
             raise SerializerError
 
         # TODO: remove all if at least one iteration fails
-        keys_to_folder = {}
-        for sub_folder, (key, value) in enumerate(data.items()):
-            keys_to_folder[sub_folder] = key
-            os.makedirs(folder / str(sub_folder), exist_ok=True)
-            self.serializer.save(value, folder / str(sub_folder))
+        try:
+            keys_to_folder = {}
+            for index, (key, value) in enumerate(data.items()):
+                keys_to_folder[index] = key
+                sub_folder = folder / str(index)
+                sub_folder.mkdir()
+                self.serializer.save(value, sub_folder)
+
+        except SerializerError:
+            # remove the partially saved object
+            for sub_folder in folder.iterdir():
+                shutil.rmtree(sub_folder)
+
+            raise
 
         with open(folder / self.keys_filename, 'w+') as f:
             json.dump(keys_to_folder, f)
