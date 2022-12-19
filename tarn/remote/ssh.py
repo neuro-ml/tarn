@@ -65,12 +65,14 @@ class SSHLocation(RemoteStorage):
                 raise
 
             yield from [(None, False)] * len(keys)
+            return
 
         try:
             with SCPClient(self.ssh.get_transport()) as scp, tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
                 if keys and not self._get_config(scp, config):
                     yield from [(None, False)] * len(keys)
+                    return
 
                 for key in keys:
                     try:

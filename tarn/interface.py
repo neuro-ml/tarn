@@ -143,7 +143,7 @@ class StorageBase:
 
         return None, status
 
-    def fetch(self, keys: Iterable[Key], context, *, verbose: bool) -> Iterable[Key]:
+    def fetch(self, keys: Sequence[Key], context, *, verbose: bool) -> Iterable[Key]:
         """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
 
         def store(k, base):
@@ -154,7 +154,7 @@ class StorageBase:
         keys = set(keys)
         bar = tqdm(disable=not verbose, total=len(keys))
         present = 0
-        for key in keys:
+        for key in list(keys):
             if self._contains(key, context):
                 present += 1
                 keys.remove(key)

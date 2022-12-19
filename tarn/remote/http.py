@@ -29,6 +29,7 @@ class HTTPLocation(RemoteStorage):
             source = Path(temp_dir) / 'source'
             if keys and not self._get_config(config):
                 yield from [(None, False)] * len(keys)
+                return
 
             for key in keys:
                 try:

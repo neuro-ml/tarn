@@ -51,7 +51,7 @@ class Storage:
 
         return key
 
-    def fetch(self, keys: Iterable[Key], *, verbose: bool, legacy: bool = True) -> Iterable[Key]:
+    def fetch(self, keys: Sequence[Key], *, verbose: bool, legacy: bool = True) -> Iterable[Key]:
         """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
         keys = list(keys)
         result = self.storage.fetch(keys, None, verbose=verbose)
