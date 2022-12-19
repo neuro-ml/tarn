@@ -38,12 +38,14 @@ def test_missing(storage_factory):
 
         key = remote.write(__file__)
         missing = key[:-1] + 'x'
-        result = location.fetch([key, missing], lambda k, base: (base / 'data').exists(), location.hash)
+        result = list(location.fetch([key, missing], lambda k, base: (base / 'data').exists(), location.hash))
         assert result == [(True, True), (None, False)]
 
 
 def test_wrong_address():
     with pytest.raises(requests.exceptions.ConnectionError):
-        HTTPLocation('http://localhost/wrong').fetch(['some-key'], lambda *args: True, None)
+        list(HTTPLocation('http://localhost/wrong').fetch(['some-key'], lambda *args: True, None))
 
-    assert HTTPLocation('http://localhost/wrong', True).fetch(['some-key'], lambda *args: True, None) == [(None, False)]
+    assert list(HTTPLocation(
+        'http://localhost/wrong', True
+    ).fetch(['some-key'], lambda *args: True, None)) == [(None, False)]
