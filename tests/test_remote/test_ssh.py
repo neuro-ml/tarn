@@ -31,6 +31,7 @@ def test_storage_ssh(storage_factory):
 
 def test_wrong_host():
     with pytest.raises((NoValidConnectionsError, SSHException)):
-        SSHLocation('localhost', '/').fetch(['some-key'], lambda *args: True, None)
-    assert SSHLocation('localhost', '/', optional=True).fetch(
-        ['some-key'], lambda *args: True, None) == [(None, False)]
+        list(SSHLocation('localhost', '/').fetch(['some-key'], lambda *args: True, None))
+    assert list(SSHLocation(
+        'localhost', '/', optional=True
+    ).fetch(['some-key'], lambda *args: True, None)) == [(None, False)]

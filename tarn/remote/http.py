@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Sequence, Callable, Any, Tuple
+from typing import Sequence, Callable, Any, Tuple, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import urlretrieve
@@ -23,13 +23,13 @@ class HTTPLocation(RemoteStorage):
         self.levels = self.hash = None
 
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
-              config: HashConfig) -> Sequence[Tuple[Any, bool]]:
+              config: HashConfig) -> Iterable[Tuple[Any, bool]]:
 
-        results = []
         with tempfile.TemporaryDirectory() as temp_dir:
             source = Path(temp_dir) / 'source'
             if keys and not self._get_config(config):
-                return [(None, False)] * len(keys)
+                yield from [(None, False)] * len(keys)
+                return
 
             for key in keys:
                 try:
@@ -37,14 +37,12 @@ class HTTPLocation(RemoteStorage):
 
                     value = store(key, source)
                     shutil.rmtree(source)
-                    results.append((value, True))
+                    yield value, True
 
                 except requests.exceptions.ConnectionError:
-                    results.append((None, False))
+                    yield None, False
 
                 shutil.rmtree(source, ignore_errors=True)
-
-        return results
 
     def _fetch_one(self, relative, local):
         try:

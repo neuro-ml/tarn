@@ -2,7 +2,7 @@ import shutil
 import socket
 import tempfile
 from pathlib import Path
-from typing import Union, Sequence, Callable, Any, Tuple
+from typing import Union, Sequence, Callable, Any, Tuple, Iterable
 
 import paramiko
 from paramiko import SSHClient, AuthenticationException, SSHException
@@ -49,7 +49,7 @@ class SSHLocation(RemoteStorage):
         self.optional = optional
 
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
-              config: HashConfig) -> Sequence[Tuple[Any, bool]]:
+              config: HashConfig) -> Iterable[Tuple[Any, bool]]:
 
         try:
             self.ssh.connect(
@@ -64,35 +64,34 @@ class SSHLocation(RemoteStorage):
             if not self.optional:
                 raise
 
-            return [(None, False)] * len(keys)
+            yield from [(None, False)] * len(keys)
+            return
 
-        results = []
         try:
             with SCPClient(self.ssh.get_transport()) as scp, tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
                 if keys and not self._get_config(scp, config):
-                    return [(None, False)] * len(keys)
+                    yield from [(None, False)] * len(keys)
+                    return
 
                 for key in keys:
                     try:
                         scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
                         if not source.exists():
-                            results.append((None, False))
+                            yield None, False
 
                         else:
                             value = store(key, source)
                             shutil.rmtree(source)
-                            results.append((value, True))
+                            yield value, True
 
                     except (SCPException, socket.timeout, SSHException):
-                        results.append((None, False))
+                        yield None, False
 
                     shutil.rmtree(source, ignore_errors=True)
 
         finally:
             self.ssh.close()
-
-        return results
 
     def _get_config(self, scp, config):
         try:
