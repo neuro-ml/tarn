@@ -1,4 +1,5 @@
 import logging
+import warnings
 from pathlib import Path
 from typing import Sequence, Iterable, Callable, Union
 
@@ -50,8 +51,22 @@ class Storage:
 
         return key
 
-    def fetch(self, keys: Iterable[Key], *, verbose: bool) -> Sequence[Key]:
-        return self.storage.fetch(keys, None, verbose=verbose)
+    def fetch(self, keys: Iterable[Key], *, verbose: bool, legacy: bool = True) -> Iterable[Key]:
+        """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
+        keys = list(keys)
+        result = self.storage.fetch(keys, None, verbose=verbose)
+        if legacy:
+            warnings.warn(
+                'In a future release fetch will yield the successfully processed keys. '
+                'Pass legacy=False to adopt this behaviour early on', UserWarning,
+            )
+            warnings.warn(
+                'In a future release fetch will yield the successfully processed keys. '
+                'Pass legacy=False to adopt this behaviour early on', DeprecationWarning,
+            )
+            result = list(set(keys) - set(result))
+
+        return result
 
     def resolve(self, key: Key, *, fetch: bool = True) -> Path:
         """ This is not safe, but it's fast. """

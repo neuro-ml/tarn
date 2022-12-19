@@ -69,7 +69,7 @@ class RemoteStorage:
 
     @abstractmethod
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
-              config: HashConfig) -> Sequence[Tuple[Any, bool]]:
+              config: HashConfig) -> Iterable[Tuple[Any, bool]]:
         """
         Fetches the value for ``key`` from a remote location.
         """
@@ -143,7 +143,9 @@ class StorageBase:
 
         return None, status
 
-    def fetch(self, keys: Iterable[Key], context, *, verbose: bool) -> Sequence[Key]:
+    def fetch(self, keys: Iterable[Key], context, *, verbose: bool) -> Iterable[Key]:
+        """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
+
         def store(k, base):
             status = self._replicate(k, base, context, self.levels)
             bar.update()
@@ -151,26 +153,25 @@ class StorageBase:
 
         keys = set(keys)
         bar = tqdm(disable=not verbose, total=len(keys))
-        present = set()
+        present = 0
         for key in keys:
             if self._contains(key, context):
-                present.add(key)
+                present += 1
+                keys.remove(key)
                 bar.update()
+                yield key
 
-        keys -= present
-        logger.info(f'Fetch: {len(present)} keys already present, fetching {len(keys)}')
+        logger.info('%s keys already present, fetching %s', present, len(keys))
 
         for remote in self.remote:
             if not keys:
                 break
 
-            logger.info(f'Trying remote {remote}')
-            keys -= {
-                k for k, success in remote.fetch(list(keys), store, self.hash)
-                if success and k is not WriteError
-            }
-
-        return list(keys)
+            logger.info('Trying remote %s', remote)
+            for key, success in remote.fetch(list(keys), store, self.hash):
+                if success and key is not WriteError:
+                    keys.remove(key)
+                    yield key
 
     def _contains(self, key, context):
         for layer in self.levels:
