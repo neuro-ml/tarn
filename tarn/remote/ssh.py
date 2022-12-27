@@ -1,3 +1,4 @@
+import contextlib
 import shutil
 import socket
 import tempfile
@@ -51,29 +52,13 @@ class SSHLocation(RemoteStorage):
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
               config: HashConfig) -> Iterable[Tuple[Any, bool]]:
 
-        try:
-            self.ssh.connect(
-                self.hostname, self.port, self.username, self.password, key_filename=self.key,
-                auth_timeout=10
-            )
-        except AuthenticationException:
-            raise AuthenticationException(self.hostname) from None
-        except socket.gaierror:
-            raise UnknownHostException(self.hostname) from None
-        except (SSHException, NoValidConnectionsError):
-            if not self.optional:
-                raise
+        with self._connect(config) as scp:
+            if scp is None:
+                yield from [(None, False)] * len(keys)
+                return
 
-            yield from [(None, False)] * len(keys)
-            return
-
-        try:
-            with SCPClient(self.ssh.get_transport()) as scp, tempfile.TemporaryDirectory() as temp_dir:
+            with tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
-                if keys and not self._get_config(scp, config):
-                    yield from [(None, False)] * len(keys)
-                    return
-
                 for key in keys:
                     try:
                         scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
@@ -89,6 +74,45 @@ class SSHLocation(RemoteStorage):
                         yield None, False
 
                     shutil.rmtree(source, ignore_errors=True)
+
+    def push(self, keys: Sequence[Key], resolve: Callable[[Key], Path], config: HashConfig) -> Iterable[bool]:
+        with self._connect(config) as scp:
+            if scp is None:
+                yield from [False] * len(keys)
+                return
+
+            for key in keys:
+                try:
+                    scp.put(resolve(key), str(self.root / key_to_relative(key, self.levels)), recursive=True)
+                    yield True
+
+                except (SCPException, socket.timeout, SSHException):
+                    yield False
+
+    @contextlib.contextmanager
+    def _connect(self, config):
+        try:
+            self.ssh.connect(
+                self.hostname, self.port, self.username, self.password, key_filename=self.key,
+                auth_timeout=10
+            )
+        except AuthenticationException:
+            raise AuthenticationException(self.hostname) from None
+        except socket.gaierror:
+            raise UnknownHostException(self.hostname) from None
+        except (SSHException, NoValidConnectionsError):
+            if not self.optional:
+                raise
+
+            yield None
+            return
+
+        try:
+            with SCPClient(self.ssh.get_transport()) as scp:
+                if not self._get_config(scp, config):
+                    yield None
+                else:
+                    yield scp
 
         finally:
             self.ssh.close()

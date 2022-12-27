@@ -67,12 +67,18 @@ class RemoteStorage:
     hash: HashConfig
     levels: Sequence[int]
 
-    @abstractmethod
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
               config: HashConfig) -> Iterable[Tuple[Any, bool]]:
         """
-        Fetches the value for ``key`` from a remote location.
+        Fetches the values for `keys` from a remote location.
         """
+        raise NotImplementedError('Fetch is not supported by this backend')
+
+    def push(self, keys: Sequence[Key], resolve: Callable[[Key], Path], config: HashConfig) -> Iterable[bool]:
+        """
+        Pushes the values for `keys` to a remote location.
+        """
+        raise NotImplementedError('Push is not supported by this backend')
 
 
 class StorageLevel(NamedTuple):
@@ -171,6 +177,7 @@ class StorageBase:
             for key, success in remote.fetch(list(keys), store, self.hash):
                 if success and key is not WriteError:
                     keys.remove(key)
+                    bar.update()
                     yield key
 
     def _contains(self, key, context):

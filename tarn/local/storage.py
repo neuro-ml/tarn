@@ -1,5 +1,6 @@
 import logging
 import warnings
+from functools import partial
 from pathlib import Path
 from typing import Sequence, Iterable, Callable, Union
 
@@ -67,6 +68,20 @@ class Storage:
             result = list(set(keys) - set(result))
 
         return result
+
+    def push(self, keys: Sequence[Key]) -> Iterable[Key]:
+        """ Push the `keys` to remote. Yields the keys that were successfully pushed """
+        keys = set(keys)
+        for remote in self.storage.remote:
+            if not keys:
+                break
+
+            logger.info('Trying remote %s', remote)
+            left = list(keys)
+            for key, success in zip(left, remote.push(left, partial(self.resolve, fetch=False), self.storage.hash)):
+                if success:
+                    keys.remove(key)
+                    yield key
 
     def resolve(self, key: Key, *, fetch: bool = True) -> Path:
         """ This is not safe, but it's fast. """
