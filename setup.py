@@ -3,11 +3,15 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 
-classifiers = '''Development Status :: 3 - Alpha
-Programming Language :: Python :: 3.6
-Programming Language :: Python :: 3.7
-Programming Language :: Python :: 3.8
-Programming Language :: Python :: 3.9'''
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+]
 
 name = 'tarn'
 root = Path(__file__).resolve().parent
@@ -28,7 +32,7 @@ setup(
     url='https://github.com/neuro-ml/tarn',
     download_url='https://github.com/neuro-ml/tarn/archive/v%s.tar.gz' % version,
     keywords=['storage', 'cache', 'invalidation'],
-    classifiers=classifiers.splitlines(),
+    classifiers=classifiers,
     install_requires=requirements,
     python_requires='>=3.6',
 )
