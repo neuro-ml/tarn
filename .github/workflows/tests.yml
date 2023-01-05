@@ -86,14 +86,14 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: reports-${{ matrix.python-version }}-${OS}
-          path: reports/*-${{ matrix.python-version }}-${OS}.xml
+          path: reports/*.xml
         if: ${{ always() }}
 
       - name: Upload coverage results
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-          files: reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          files: reports/coverage-*.xml
           verbose: true
 
   test-windows:
@@ -145,12 +145,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: reports-${{ matrix.python-version }}-${OS}
-          path: reports/*-${{ matrix.python-version }}-${OS}.xml
+          path: reports/*.xml
         if: ${{ always() }}
 
       - name: Upload coverage results
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-          files: reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          files: reports/coverage-*.xml
           verbose: true
