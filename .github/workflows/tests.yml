@@ -118,7 +118,7 @@ jobs:
 
       - name: Install
         run: |
-          pip install dist\$(Get-ChildItem -LiteralPath dist -Filter *.tar.gz)
+          pip install $(Get-ChildItem -LiteralPath dist -Filter *.tar.gz)
           pip install -r tests/requirements.txt
 
       - name: Test with pytest
