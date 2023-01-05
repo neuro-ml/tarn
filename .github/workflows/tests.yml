@@ -7,12 +7,12 @@ env:
 
 jobs:
   test-linux:
+    runs-on: ubuntu-20.04
+    env:
+      OS: ubuntu
     strategy:
       matrix:
         python-version: [ 3.6, 3.7, 3.8, 3.9, '3.10', '3.11' ]
-        os: [ ubuntu-20.04, windows-latest ]
-
-    runs-on: ${{ matrix.os }}
 
     services:
       redis:
@@ -75,23 +75,82 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest tests --junitxml=reports/junit-${{ matrix.python-version }}.xml --cov="$MODULE_PARENT/$MODULE_NAME" --cov-report=xml --cov-branch
+          pytest tests --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov="$MODULE_PARENT/$MODULE_NAME" --cov-report=xml --cov-branch
       - name: Generate coverage report
         run: |
-          coverage xml -o reports/coverage-${{ matrix.python-version }}.xml
-          sed -i -e "s|$MODULE_PARENT/||g" reports/coverage-${{ matrix.python-version }}.xml
-          sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}.xml
+          coverage xml -o reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          sed -i -e "s|$MODULE_PARENT/||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: reports-${{ matrix.python-version }}
-          path: reports/*-${{ matrix.python-version }}.xml
+          name: reports-${{ matrix.python-version }}-${OS}
+          path: reports/*-${{ matrix.python-version }}-${OS}.xml
         if: ${{ always() }}
 
       - name: Upload coverage results
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-          files: reports/coverage-${{ matrix.python-version }}.xml
+          files: reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          verbose: true
+
+  test-windows:
+    runs-on: windows-latest
+    env:
+      OS: windows
+    strategy:
+      matrix:
+        python-version: [ 3.6, 3.7, 3.8, 3.9, '3.10', '3.11' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build the package
+        run: |
+          python setup.py sdist
+
+      - name: Install
+        run: |
+          pip install dist/*
+          pip install -r tests/requirements.txt
+
+          cd tests
+          export MODULE_PARENT=$(python -c "import $MODULE_NAME, os; print(os.path.dirname($MODULE_NAME.__path__[0]))")
+          export MODULE_PARENT=${MODULE_PARENT%"/"}
+          cd ..
+          echo $MODULE_PARENT
+          echo "MODULE_PARENT=$(echo $MODULE_PARENT)" >> $GITHUB_ENV
+
+      - name: Setup docker-compose services
+        run: |
+          mkdir -p /tmp/http/storage
+          docker-compose -f tests/assets/docker-compose.yml up -d
+
+      - name: Test with pytest
+        run: |
+          pytest tests --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov="$MODULE_PARENT/$MODULE_NAME" --cov-report=xml --cov-branch
+      - name: Generate coverage report
+        run: |
+          coverage xml -o reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          sed -i -e "s|$MODULE_PARENT/||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: reports-${{ matrix.python-version }}-${OS}
+          path: reports/*-${{ matrix.python-version }}-${OS}.xml
+        if: ${{ always() }}
+
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          files: reports/coverage-${{ matrix.python-version }}-${OS}.xml
           verbose: true
