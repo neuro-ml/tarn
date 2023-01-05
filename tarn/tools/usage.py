@@ -1,13 +1,13 @@
 import os
-import shutil
 from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union
 
+from ..compat import get_path_group, set_path_attrs
 from ..utils import Key
 
-__all__ = 'UsageTracker', 'DummyUsage'
+__all__ = 'UsageTracker', 'DummyUsage', 'StatUsage'
 
 
 class UsageTracker(ABC):
@@ -41,8 +41,7 @@ class StatUsage(UsageTracker):
         missing = not mark.exists()
         mark.touch(exist_ok=True)
         if missing:
-            os.chmod(mark, 0o777)
-            shutil.chown(mark, group=base.group())
+            set_path_attrs(mark, 0o777, get_path_group(base))
 
     def delete(self, key: Key, base: Path):
         mark = self._mark(base)

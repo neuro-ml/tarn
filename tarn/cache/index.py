@@ -8,10 +8,11 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 
+from ..compat import rmtree, copy_file
 from ..digest import key_to_relative
 from ..local import Storage, DiskBase
 from ..interface import Key
-from ..utils import create_folders, to_read_only, copy_file, match_files, adjust_permissions
+from ..utils import create_folders, to_read_only, match_files, adjust_permissions
 from ..exceptions import StorageCorruption, ReadError
 from .serializers import Serializer, SerializerError
 from .compat import BadGzipFile
@@ -116,7 +117,7 @@ class CacheIndex(DiskBase):
         message = f'Corrupted storage at {self.root} for key {digest}. Cleaning up.'
         warnings.warn(message, RuntimeWarning)
         logger.warning(message)
-        shutil.rmtree(folder)
+        rmtree(folder)
 
 
 def check_consistency(hash_path, pickled, check_existence: bool = False):

@@ -9,6 +9,7 @@ from yaml import safe_load, safe_dump
 
 from .tools import Locker, DummyLocker, SizeTracker, DummySize, UsageTracker, DummyUsage
 from .utils import PathLike, mkdir
+from .compat import get_path_group
 
 CONFIG_NAME = 'config.yml'
 
@@ -106,7 +107,7 @@ class StorageConfig(_NoExtra):
 
 def root_params(root: Path):
     stat = root.stat()
-    return stat.st_mode & 0o777, stat.st_gid
+    return stat.st_mode & 0o777, get_path_group(root)
 
 
 def load_config(root: PathLike) -> StorageConfig:
