@@ -1,4 +1,3 @@
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Sequence, Callable, Any, Tuple, Iterable
@@ -8,6 +7,7 @@ from urllib.request import urlretrieve
 
 import requests
 
+from ..compat import rmtree
 from ..config import load_config, HashConfig
 from ..digest import key_to_relative
 from ..interface import RemoteStorage, Key
@@ -36,13 +36,13 @@ class HTTPLocation(RemoteStorage):
                     self._fetch_tree(key_to_relative(key, self.levels), source)
 
                     value = store(key, source)
-                    shutil.rmtree(source)
+                    rmtree(source)
                     yield value, True
 
                 except requests.exceptions.ConnectionError:
                     yield None, False
 
-                shutil.rmtree(source, ignore_errors=True)
+                rmtree(source, ignore_errors=True)
 
     def _fetch_one(self, relative, local):
         try:

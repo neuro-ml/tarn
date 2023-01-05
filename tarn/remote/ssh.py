@@ -1,5 +1,4 @@
 import contextlib
-import shutil
 import socket
 import tempfile
 from pathlib import Path
@@ -11,6 +10,7 @@ from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
+from ..compat import rmtree
 from ..config import load_config, HashConfig
 from ..digest import key_to_relative
 from ..interface import RemoteStorage, Key
@@ -67,13 +67,13 @@ class SSHLocation(RemoteStorage):
 
                         else:
                             value = store(key, source)
-                            shutil.rmtree(source)
+                            rmtree(source)
                             yield value, True
 
                     except (SCPException, socket.timeout, SSHException):
                         yield None, False
 
-                    shutil.rmtree(source, ignore_errors=True)
+                    rmtree(source, ignore_errors=True)
 
     def push(self, keys: Sequence[Key], resolve: Callable[[Key], Path], config: HashConfig) -> Iterable[bool]:
         with self._connect(config) as scp:

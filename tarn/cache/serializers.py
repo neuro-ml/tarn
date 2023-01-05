@@ -1,6 +1,5 @@
 import json
 import pickle
-import shutil
 from abc import ABC, abstractmethod
 from contextlib import suppress
 from functools import partial
@@ -10,6 +9,7 @@ from typing import Union, Dict, Callable
 
 import numpy as np
 
+from ..compat import rmtree
 from ..local import Storage
 
 __all__ = (
@@ -172,7 +172,7 @@ class DictSerializer(Serializer):
         except SerializerError:
             # remove the partially saved object
             for sub_folder in folder.iterdir():
-                shutil.rmtree(sub_folder)
+                rmtree(sub_folder)
 
             raise
 

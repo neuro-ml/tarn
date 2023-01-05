@@ -6,6 +6,7 @@ from typing import Any, Tuple
 
 from tqdm import tqdm
 
+from ..compat import rmtree
 from ..config import root_params, load_config
 from ..digest import key_to_relative
 from ..interface import LocalStorage, Key
@@ -45,7 +46,7 @@ class DiskBase(LocalStorage, ABC):
 
             # TODO: don't need this if no tracker is used
             size = self._get_size(base)
-            shutil.rmtree(base)
+            rmtree(base)
             self.size_tracker.dec(size, self.root)
             self.usage_tracker.delete(key, base)
 
@@ -115,7 +116,7 @@ class DiskBase(LocalStorage, ABC):
 
             except BaseException as e:
                 if base.exists():
-                    shutil.rmtree(base)
+                    rmtree(base)
                 raise RuntimeError('An error occurred while copying the file') from e
 
             # metadata

@@ -28,6 +28,7 @@ def test_read_write(storage_factory, temp_dir):
 
         # corrupt the index
         h, = root.glob('**/hash.bin')
+        os.chmod(h, 0o777)
         os.remove(h)
         # make sure it was cleaned
         _, success = cache.read(key, error=False)

@@ -1,8 +1,8 @@
 import logging
-import shutil
 from pathlib import Path
 from typing import Any, Tuple, Callable
 
+from ..compat import rmtree
 from ..digest import digest_file
 from ..interface import Key
 from ..local import DiskBase
@@ -35,7 +35,7 @@ class Disk(DiskBase):
         to_read_only(file, self.permissions, self.group)
         digest = digest_file(file, self.algorithm)
         if digest != key:
-            shutil.rmtree(base)
+            rmtree(base)
             raise ValueError(f'The stored file has a wrong hash: expected {key} got {digest}. '
                              'The file was most likely corrupted while copying')
 

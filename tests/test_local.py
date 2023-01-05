@@ -1,4 +1,5 @@
 import filecmp
+import platform
 from pathlib import Path
 
 from tarn import Storage, StorageLevel, Disk
@@ -28,7 +29,10 @@ def test_single_local(storage_factory):
         assert filecmp.cmp(file, stored, shallow=False)
         assert file.stat().st_mode & 0o777 == permissions
         assert stored.stat().st_mode & 0o777 == disk.permissions & 0o444
-        assert stored.stat().st_gid == disk.group
+        if platform.system() != 'Windows':
+            assert stored.stat().st_gid == disk.group
+        else:
+            assert disk.group is None
 
 
 def test_layers(temp_dir):
