@@ -46,7 +46,7 @@ def chdir():
 def storage_factory():
     @contextmanager
     def factory(locker=None, group=None, names=('storage',), root=None, exist_ok=False) -> Iterator[Storage]:
-        with tempfile.TemporaryDirectory() as _root:
+        with _safe_tmpdir() as _root:
             if root is None:
                 root = _root
             root = Path(root)
@@ -68,12 +68,23 @@ def storage_factory():
 def disk_cache_factory(storage_factory):
     @contextmanager
     def factory(serializer) -> Iterator[CacheStorage]:
-        with tempfile.TemporaryDirectory() as root, storage_factory() as storage:
+        with _safe_tmpdir() as root, storage_factory() as storage:
             roots = []
-            local = Path(root) / 'cache'
+            local = root / 'cache'
             roots.append(local)
             init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
 
             yield CacheStorage(*(CacheIndex(x, storage, serializer) for x in roots))
 
     return factory
+
+
+# py<3.8 has a bug in rmtree for windows
+@contextmanager
+def _safe_tmpdir():
+    tmp = tempfile.TemporaryDirectory()
+    yield Path(tmp.name)
+    try:
+        tmp.cleanup()
+    except PermissionError:
+        pass
