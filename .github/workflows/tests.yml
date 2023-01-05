@@ -118,20 +118,12 @@ jobs:
 
       - name: Install
         run: |
-          pip install dist/*
+          pip install dist\$(Get-ChildItem -LiteralPath dist -Filter *.tar.gz)
           pip install -r tests/requirements.txt
-
-      - name: Setup docker-compose services
-        run: |
-          mkdir -p /tmp/http/storage
-          docker-compose -f tests/assets/docker-compose.yml up -d
 
       - name: Test with pytest
         run: |
-          pytest tests --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
-      - name: Generate coverage report
-        run: |
-          coverage xml -o reports/coverage-${{ matrix.python-version }}-${OS}.xml
+          pytest tests -m "not redis and not ssh and not nginx" --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
