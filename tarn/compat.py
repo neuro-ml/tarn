@@ -3,7 +3,6 @@ import os
 import platform
 import shutil
 import stat
-from contextlib import suppress
 from pathlib import Path
 from typing import Union
 
@@ -16,8 +15,16 @@ if platform.system() == 'Windows':
 
         shutil.rmtree(path, ignore_errors=ignore_errors, onerror=remove_readonly)
 
+
+    def get_path_group(path: Union[Path, str]) -> Union[int, None]:
+        pass
+
 else:
     rmtree = shutil.rmtree
+
+
+    def get_path_group(path: Union[Path, str]) -> Union[int, None]:
+        return Path(path).stat().st_gid
 
 
 def set_path_attrs(path: Path, permissions: Union[int, None] = None, group: Union[str, int, None] = None):
@@ -25,13 +32,6 @@ def set_path_attrs(path: Path, permissions: Union[int, None] = None, group: Unio
         path.chmod(permissions)
     if group is not None:
         shutil.chown(path, group=group)
-
-
-def get_path_group(path: Path):
-    with suppress(NotImplementedError):
-        # this will trigger an error on windows
-        path.group()
-        return path.stat().st_gid
 
 
 def copy_file(source, destination):
