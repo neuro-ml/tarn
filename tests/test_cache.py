@@ -53,6 +53,7 @@ def test_corrupted_numpy(storage_factory, temp_dir):
 
         # corrupt the index
         h, = storage_root.glob('**/data')
+        os.chmod(h, 0o777)
         os.remove(h)
         h.touch()
         # make sure it was cleaned
