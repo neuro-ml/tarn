@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Union, Dict, Callable
 
 import numpy as np
+from tarn import ReadError
 
 from ..compat import rmtree
 from ..local import Storage
@@ -123,15 +124,17 @@ class NumpySerializer(Serializer):
                     return self.compression[dtype]
 
     def save(self, value, folder: Path):
-        value = np.asarray(value)
+        if not isinstance(value, (np.ndarray, np.generic)):
+            raise SerializerError
+
         compression = self._choose_compression(value)
         if compression is not None:
             assert isinstance(compression, int)
             with GzipFile(folder / 'value.npy.gz', 'wb', compresslevel=compression, mtime=0) as file:
-                np.save(file, value)
+                np.save(file, value, allow_pickle=False)
 
         else:
-            np.save(folder / 'value.npy', value)
+            np.save(folder / 'value.npy', value, allow_pickle=False)
 
     def load(self, folder: Path, storage: Storage):
         paths = list(folder.iterdir())
@@ -140,15 +143,18 @@ class NumpySerializer(Serializer):
 
         path, = paths
         if path.name == 'value.npy':
-            loader = partial(np.load, allow_pickle=True)
+            loader = partial(np.load, allow_pickle=False)
         elif path.name == 'value.npy.gz':
             def loader(x):
                 with GzipFile(x, 'rb') as file:
-                    return np.load(file, allow_pickle=True)
+                    return np.load(file, allow_pickle=False)
         else:
             raise SerializerError
 
-        return self._load_file(storage, loader, path)
+        try:
+            return self._load_file(storage, loader, path)
+        except ValueError as e:
+            raise ReadError from e
 
 
 class DictSerializer(Serializer):
