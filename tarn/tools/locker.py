@@ -2,13 +2,13 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from pathlib import Path
 from threading import Lock
+from typing import ContextManager, Optional, AnyStr
 
 from redis import Redis
 from redis.exceptions import NoScriptError
 
-from ..utils import Key
+from ..interface import Key
 
 __all__ = 'Locker', 'DummyLocker', 'RedisLocker', 'GlobalThreadLocker'
 
@@ -16,102 +16,86 @@ logger = logging.getLogger(__name__)
 
 
 class Locker(ABC):
-    @contextmanager
-    def read(self, key: Key, base: Path):
-        self.reserve_read(key, base)
-        try:
-            yield
-        finally:
-            self.stop_reading(key, base)
-
-    @contextmanager
-    def write(self, key: Key, base: Path):
-        self.reserve_write(key, base)
-        try:
-            yield
-        finally:
-            self.stop_writing(key, base)
-
-    def reserve_read(self, key: Key, base: Path):
-        sleep_time = 0.1
-        sleep_iters = int(600 / sleep_time) or 1  # 10 minutes
-        wait_for_true(self.start_reading, key, base, sleep_time, sleep_iters)
-
-    def reserve_write(self, key: Key, base: Path):
-        sleep_time = 0.1
-        sleep_iters = int(600 / sleep_time) or 1  # 10 minutes
-        wait_for_true(self.start_writing, key, base, sleep_time, sleep_iters)
+    @abstractmethod
+    def read(self, key: Key) -> ContextManager[None]:
+        pass
 
     @abstractmethod
-    def start_reading(self, key: Key, base: Path) -> bool:
-        """ Try to reserve a read operation. Return True if it was successful. """
+    def write(self, key: Key) -> ContextManager[None]:
+        pass
 
-    @abstractmethod
-    def stop_reading(self, key: Key, base: Path):
-        """ Release a read operation. """
 
-    @abstractmethod
-    def start_writing(self, key: Key, base: Path) -> bool:
-        """ Try to reserve a write operation. Return True if it was successful. """
-
-    @abstractmethod
-    def stop_writing(self, key: Key, base: Path):
-        """ Release a write operation. """
+class PotentialDeadLock(RuntimeError):
+    pass
 
 
 class DummyLocker(Locker):
-    def start_reading(self, key: Key, base: Path) -> bool:
-        return True
+    @contextmanager
+    def read(self, key: Key) -> ContextManager[None]:
+        yield
 
-    def stop_reading(self, key: Key, base: Path):
-        pass
-
-    def start_writing(self, key: Key, base: Path) -> bool:
-        return True
-
-    def stop_writing(self, key: Key, base: Path):
-        pass
+    write = read
 
 
 class GlobalThreadLocker(Locker):
-    def __init__(self):
+    def __init__(self, timeout: Optional[int] = None):
+        self.timeout = timeout
         self._lock = Lock()
 
-    def _acquire(self):
-        if self._lock.locked():
-            return False
-        self._lock.acquire()
-        return True
+    @contextmanager
+    def read(self, key: Key) -> ContextManager[None]:
+        success = self._lock.acquire(timeout=-1 if self.timeout is None else self.timeout)
+        if not success:
+            raise PotentialDeadLock(f"It seems like you've hit a deadlock for key {key}.")
 
-    def _release(self):
-        assert self._lock.locked()
-        self._lock.release()
+        try:
+            yield
+        finally:
+            self._lock.release()
 
-    def start_reading(self, key: Key, base: Path) -> bool:
-        return self._acquire()
-
-    def stop_reading(self, key: Key, base: Path):
-        self._release()
-
-    def start_writing(self, key: Key, base: Path) -> bool:
-        return self._acquire()
-
-    def stop_writing(self, key: Key, base: Path):
-        self._release()
+    write = read
 
 
 class RedisLocker(Locker):
-    def __init__(self, *args, prefix: str, expire: int):
+    def __init__(self, *args, prefix: AnyStr, expire: int):
         if len(args) == 1 and isinstance(args[0], Redis):
             redis, = args
         else:
             redis = Redis(*args)
+        if isinstance(prefix, str):
+            prefix = prefix.encode()
 
         self._redis = redis
-        self._prefix = prefix + ':'
+        self._prefix = prefix + b':'
         self._expire = expire
-        self._volume_key = f'{prefix}.V'
+        self._volume_key = prefix + b'.V'
         self._update_scripts()
+
+    @classmethod
+    def from_url(cls, url: str, prefix: AnyStr, expire: int):
+        return cls(Redis.from_url(url), prefix=prefix, expire=expire)
+
+    @contextmanager
+    def read(self, key: Key) -> ContextManager[None]:
+        sleep_time = 0.1
+        sleep_iters = int(self._expire / sleep_time) or 1
+        wait_for_true(self._start_reading, key, sleep_time, sleep_iters)
+
+        try:
+            yield
+        finally:
+            self._safe_eval(self._stop_reading, 1, self._prefix + key)
+
+    @contextmanager
+    def write(self, key: Key) -> ContextManager[None]:
+        sleep_time = 0.1
+        sleep_iters = int(self._expire / sleep_time) or 1
+        wait_for_true(self._start_writing, key, sleep_time, sleep_iters)
+
+        try:
+            yield
+        finally:
+            self._safe_eval(self._stop_writing, 1, self._prefix + key)
 
     def _update_scripts(self):
         expire = self._expire
@@ -126,7 +110,7 @@ class RedisLocker(Locker):
         # language=Lua
         self._start_reading = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
-        if lock == '-1' then 
+        if lock == '-1' then
             return 0
         elseif lock == false then
             redis.call('set', KEYS[1], 1, 'EX', {expire})
@@ -153,30 +137,16 @@ class RedisLocker(Locker):
             self._update_scripts()
             return self._redis.evalsha(*args)
 
-    def start_writing(self, key: Key, base: Path) -> bool:
+    def _start_writing(self, key: Key) -> bool:
         return bool(self._redis.set(self._prefix + key, -1, nx=True, ex=self._expire))
 
-    def stop_writing(self, key: Key, base: Path):
-        self._safe_eval(self._stop_writing, 1, self._prefix + key)
-
-    def start_reading(self, key: Key, base: Path) -> bool:
+    def _start_reading(self, key: Key) -> bool:
         return bool(self._safe_eval(self._start_reading, 1, self._prefix + key))
 
-    def stop_reading(self, key: Key, base: Path):
-        self._safe_eval(self._stop_reading, 1, self._prefix + key)
 
-    @classmethod
-    def from_url(cls, url: str, prefix: str, expire: int):
-        return cls(Redis.from_url(url), prefix=prefix, expire=expire)
-
-
-class PotentialDeadLock(RuntimeError):
-    pass
-
-
-def wait_for_true(func, key, base, sleep_time, max_iterations):
+def wait_for_true(func, key, sleep_time, max_iterations):
     i = 0
-    while not func(key, base):
+    while not func(key):
         if i >= max_iterations:
             logger.error('Potential deadlock detected for %s', key)
             raise PotentialDeadLock(f"It seems like you've hit a deadlock for key {key}.")

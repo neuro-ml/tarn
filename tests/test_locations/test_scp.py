@@ -1,7 +1,6 @@
 import pytest
-from paramiko.ssh_exception import NoValidConnectionsError, SSHException
 
-from tarn import SSHLocation, ReadError
+from tarn import SCP, ReadError
 
 
 def load_text(path):
@@ -10,7 +9,7 @@ def load_text(path):
 
 
 def get_ssh_location(root):
-    return SSHLocation('remote', root, password='password')
+    return SCP('remote', root, password='password')
 
 
 @pytest.mark.ssh
@@ -30,8 +29,4 @@ def test_storage_ssh(storage_factory):
 
 
 def test_wrong_host():
-    with pytest.raises((NoValidConnectionsError, SSHException)):
-        list(SSHLocation('localhost', '/').fetch(['some-key'], lambda *args: True, None))
-    assert list(SSHLocation(
-        'localhost', '/', optional=True
-    ).fetch(['some-key'], lambda *args: True, None)) == [(None, False)]
+    assert list(SCP('localhost', '/').read_batch([b'some-key'])) == [(b'some-key', None)]

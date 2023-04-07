@@ -19,19 +19,20 @@ def test_read_write(storage_factory, temp_dir):
         x = 10
         key = (some_func, x)
         value = some_func(x)
+        default = set(root.glob('*/*'))
 
         _, success = cache.read(key, error=False)
         assert not success
-        cache.write(key, value)
+        assert cache.write(key, value) is not None
 
         assert cache.read(key) == value
         # trigger consistency check
-        cache.write(key, value)
+        assert cache.write(key, value) is not None
 
         # corrupt the index
-        h, = root.glob('**/hash.bin')
+        h, = set(root.glob('*/*')) - default
         os.chmod(h, 0o777)
-        os.remove(h)
+        open(h, 'w').close()
         # make sure it was cleaned
         _, success = cache.read(key, error=False)
         assert not success
@@ -46,16 +47,19 @@ def test_corrupted_numpy(storage_factory, temp_dir):
 
         key = 10
         value = np.array([1, 2, 3])
+        default = set(storage_root.glob('*/*/*'))
+
         cache.write(key, value)
 
         # trigger consistency check
         cache.write(key, value)
 
         # corrupt the index
-        h, = storage_root.glob('**/data')
+        files = set(storage_root.glob('*/*/*')) - default
+        assert len(files) == 1, files
+        h, = files
         os.chmod(h, 0o777)
-        os.remove(h)
-        h.touch()
+        open(h, 'w').close()
         # make sure it was cleaned
-        _, success = cache.read(key, error=False)
-        assert not success
+        value, success = cache.read(key, error=False)
+        assert not success, (value, success)

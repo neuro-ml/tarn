@@ -1,13 +1,15 @@
 import logging
+import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Tuple, Callable, Any, Sequence, Union, NamedTuple, Optional
+from typing import Optional, Sequence, Iterable, BinaryIO, Union
+from typing import Tuple, Callable, Any
 
-from tqdm.auto import tqdm
-
-from .config import HashConfig
-from .exceptions import WriteError
-from .utils import Key
+Key = bytes
+Keys = Sequence[Key]
+PathOrStr = Union[Path, str, os.PathLike]
+Value = Union[BinaryIO, PathOrStr]
+MaybeValue = Optional[Value]
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ class LocalStorage(ABC):
     Storage that has a well-defined location on the filesystem
     """
 
-    def __init__(self, hash: HashConfig, levels: Sequence[int]):
+    def __init__(self, hash, levels: Sequence[int]):
         self.hash = hash
         self.algorithm = self.hash.build()
         self.levels = levels
@@ -64,141 +66,17 @@ class LocalStorage(ABC):
 
 
 class RemoteStorage:
-    hash: HashConfig
     levels: Sequence[int]
 
     def fetch(self, keys: Sequence[Key], store: Callable[[Key, Path], Any],
-              config: HashConfig) -> Iterable[Tuple[Any, bool]]:
+              config) -> Iterable[Tuple[Any, bool]]:
         """
         Fetches the values for `keys` from a remote location.
         """
         raise NotImplementedError('Fetch is not supported by this backend')
 
-    def push(self, keys: Sequence[Key], resolve: Callable[[Key], Path], config: HashConfig) -> Iterable[bool]:
+    def push(self, keys: Sequence[Key], resolve: Callable[[Key], Path], config) -> Iterable[bool]:
         """
         Pushes the values for `keys` to a remote location.
         """
         raise NotImplementedError('Push is not supported by this backend')
-
-
-class StorageLevel(NamedTuple):
-    locations: Sequence[LocalStorage]
-    write: bool
-    replicate: bool
-    name: Optional[str] = None
-
-
-class StorageBase:
-    def __init__(self, *levels: StorageLevel, remote: Sequence[RemoteStorage] = ()):
-        if not levels:
-            raise ValueError('The storage must have at least 1 storage level')
-        if not all(x.locations for x in levels):
-            raise ValueError('Each level must have at least 1 location')
-
-        reference = levels[0].locations[0].hash
-        for layer in levels:
-            for loc in layer.locations:
-                if loc.hash != reference:
-                    raise ValueError('Storage locations have inconsistent hash algorithms')
-
-        self.hash = reference
-        self.levels: Sequence[StorageLevel] = levels
-        self.remote: Sequence[RemoteStorage] = tuple(remote)
-
-    def write(self, key, value, context) -> bool:
-        """
-        Returns True if the ``value`` was written or already present.
-        """
-        for layer in self.levels:
-            if layer.write:
-                for location in layer.locations:
-                    if location.write(key, value, context):
-                        return True
-
-        return False
-
-    def read(self, key, context, *, fetch: bool) -> Tuple[Any, Union[None, bool]]:
-        replicate = []
-        # visit each level
-        for layer in self.levels:
-            for location in layer.locations:
-                value, success = location.read(key, context)
-                if success:
-                    location.replicate_to(key, context, lambda k, base: self._replicate(k, base, context, replicate))
-                    return value, True
-
-            # nothing found in this level
-            if layer.replicate:
-                replicate.append(layer)
-
-        # try to fetch from remote
-        status = False
-        if fetch:
-            for remote in self.remote:
-                (local, success), = remote.fetch(
-                    [key], lambda k, base: self._replicate(k, base, context, replicate), self.hash
-                )
-                if success:
-                    if local is WriteError:
-                        status = None
-                        continue
-
-                    value, exists = local.read(key, context)
-                    assert exists, exists
-                    return value, True
-
-        return None, status
-
-    def fetch(self, keys: Sequence[Key], context, *, verbose: bool) -> Iterable[Key]:
-        """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
-
-        def store(k, base):
-            status = self._replicate(k, base, context, self.levels)
-            bar.update()
-            return status if status is WriteError else k
-
-        keys = set(keys)
-        bar = tqdm(disable=not verbose, total=len(keys))
-        present = 0
-        for key in list(keys):
-            if self._contains(key, context):
-                present += 1
-                keys.remove(key)
-                bar.update()
-                yield key
-
-        logger.info('%s keys already present, fetching %s', present, len(keys))
-
-        for remote in self.remote:
-            if not keys:
-                break
-
-            logger.info('Trying remote %s', remote)
-            for key, success in remote.fetch(list(keys), store, self.hash):
-                if success and key is not WriteError:
-                    keys.remove(key)
-                    bar.update()
-                    yield key
-
-    def _contains(self, key, context):
-        for layer in self.levels:
-            for location in layer.locations:
-                if location.contains(key, context):
-                    return True
-
-        return False
-
-    @staticmethod
-    def _replicate(key, base, context, to_replicate):
-        replicated = []
-        for layer in to_replicate:
-            if layer.replicate:
-                for location in layer.locations:
-                    if location.replicate_from(key, base, context):
-                        replicated.append(location)
-                        break
-
-        if replicated:
-            return replicated[0]
-
-        return WriteError

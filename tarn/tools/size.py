@@ -17,15 +17,15 @@ class SizeTracker(ABC):
         pass
 
     @abstractmethod
-    def set(self, size: int, root: Path):
+    def set(self, size: int):
         pass
 
     @abstractmethod
-    def inc(self, size: int, root: Path):
+    def inc(self, size: int):
         pass
 
     @abstractmethod
-    def dec(self, size: int, root: Path):
+    def dec(self, size: int):
         pass
 
 
@@ -33,13 +33,13 @@ class DummySize(SizeTracker):
     def get(self, root: Path):
         return 0
 
-    def set(self, size: int, root: Path):
+    def set(self, size: int):
         pass
 
-    def inc(self, size: int, root: Path):
+    def inc(self, size: int):
         pass
 
-    def dec(self, size: int, root: Path):
+    def dec(self, size: int):
         pass
 
 
@@ -56,13 +56,13 @@ class RedisSize(SizeTracker):
     def get(self, root: Path):
         return int(self._redis.get(self._volume_key) or 0)
 
-    def set(self, size: int, root: Path):
+    def set(self, size: int):
         self._redis.set(self._volume_key, size)
 
-    def inc(self, size: int, root: Path):
+    def inc(self, size: int):
         self._redis.incrby(self._volume_key, size)
 
-    def dec(self, size: int, root: Path):
+    def dec(self, size: int):
         self._redis.decrby(self._volume_key, size)
 
     @classmethod

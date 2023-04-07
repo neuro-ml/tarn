@@ -6,9 +6,10 @@ from typing import Iterator
 
 import pytest
 
-from tarn import Storage, Disk
+from tarn import Storage, DiskDict, PickleKeyStorage
 from tarn.cache import CacheStorage, CacheIndex
 from tarn.config import init_storage, StorageConfig
+from tarn.pool import HashKeyStorage
 
 pytest_plugins = 'cache_fixtures',
 
@@ -59,22 +60,47 @@ def storage_factory():
                     hash='blake2b', levels=[1, 63], locker=locker
                 ), local, exist_ok=exist_ok, group=group)
 
-            yield Storage(*map(Disk, roots))
+            yield HashKeyStorage(list(map(DiskDict, roots)))
 
     return factory
 
 
 @pytest.fixture
+def disk_dict_factory():
+    @contextmanager
+    def factory(locker=None, group=None, root=None, exist_ok=False) -> Iterator[Storage]:
+        with _safe_tmpdir() as _root:
+            if root is None:
+                root = _root
+                exist_ok = True
+            root = Path(root)
+
+            init_storage(StorageConfig(
+                hash='blake2b', levels=[1, 63], locker=locker
+            ), root, exist_ok=exist_ok, group=group)
+
+            yield DiskDict(root)
+
+    return factory
+
+
+@pytest.fixture
+def random_disk_dict(disk_dict_factory):
+    with disk_dict_factory() as disk:
+        yield disk
+
+
+@pytest.fixture
 def disk_cache_factory(storage_factory):
     @contextmanager
-    def factory(serializer) -> Iterator[CacheStorage]:
+    def factory(serializer) -> Iterator[PickleKeyStorage]:
         with _safe_tmpdir() as root, storage_factory() as storage:
             roots = []
             local = root / 'cache'
             roots.append(local)
             init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
 
-            yield CacheStorage(*(CacheIndex(x, storage, serializer) for x in roots))
+            yield PickleKeyStorage(roots, storage, serializer)
 
     return factory
 
