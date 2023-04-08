@@ -52,6 +52,8 @@ class Nginx(Location):
         try:
             if self.levels is None:
                 with requests.get(urljoin(self.url, 'config.yml'), stream=True) as request:
+                    if not request.ok:
+                        return
                     config = load_config_buffer(request.text)
                     self.hash, self.levels = config.hash.build(), config.levels
 

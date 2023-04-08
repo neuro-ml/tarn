@@ -11,7 +11,7 @@ def load_text(path):
 
 
 STORAGE_ROOT = '/tmp/http'
-STORAGE_URL = 'http://localhost:8765'
+STORAGE_URL = 'http://localhost'
 
 
 @pytest.mark.nginx
@@ -44,4 +44,7 @@ def test_missing(storage_factory):
 
 
 def test_wrong_address():
+    # totally wrong
+    assert list(Nginx('http://localhosts/wrong').read_batch([b'some-key'])) == [(b'some-key', None)]
+    # missing config
     assert list(Nginx('http://localhost/wrong').read_batch([b'some-key'])) == [(b'some-key', None)]
