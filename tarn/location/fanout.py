@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import ContextManager, Iterable, Tuple
 
 from ..interface import Key, Keys, MaybeValue, Value
-from ..location import Location, Writable
+from .interface import Location, Writable
 
 
 class Fanout(Writable):
