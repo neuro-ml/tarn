@@ -1,10 +1,9 @@
-import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ..compat import get_path_group, set_path_attrs
+from ..compat import get_path_group, remove_file, set_path_attrs
 from ..digest import key_to_relative
 from ..interface import Key
 
@@ -50,7 +49,7 @@ class StatUsage(UsageTracker):
     def delete(self, key: Key):
         mark = self._mark(key)
         if mark.exists():
-            os.remove(mark)
+            remove_file(mark)
 
     def get(self, key: Key, path: Path) -> Optional[datetime]:
         mark = self._mark(key)

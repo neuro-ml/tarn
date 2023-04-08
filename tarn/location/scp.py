@@ -1,5 +1,3 @@
-import os
-import shutil
 import socket
 import tempfile
 from contextlib import contextmanager
@@ -12,6 +10,7 @@ from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
+from ..compat import remove_file, rmtree
 from ..config import load_config
 from ..digest import key_to_relative
 from ..interface import Key, Keys, MaybeValue, PathOrStr
@@ -70,11 +69,11 @@ class SCP(Location):
                         # TODO: legacy
                         if source.is_dir():
                             yield source / 'data'
-                            shutil.rmtree(source)
+                            rmtree(source)
 
                         else:
                             yield source
-                            os.remove(source)
+                            remove_file(source)
 
                 except (SCPException, socket.timeout, SSHException):
                     yield None
@@ -93,8 +92,14 @@ class SCP(Location):
                     try:
                         scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
                         if source.exists():
-                            yield key, source
-                            os.remove(source)
+                            # TODO: legacy
+                            if source.is_dir():
+                                yield key, source / 'data'
+                                rmtree(source)
+
+                            else:
+                                yield key, source
+                                remove_file(source)
 
                         else:
                             yield key, None

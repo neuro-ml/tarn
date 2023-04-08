@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import ContextManager, Iterable, Optional, Tuple
 
-from ..compat import copy_file, rmtree
+from ..compat import copy_file, remove_file, rmtree
 from ..config import load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import StorageCorruption
@@ -108,7 +108,7 @@ class DiskDict(Writable):
 
                 except BaseException as e:
                     if file.exists():
-                        os.remove(file)
+                        remove_file(file)
                     raise RuntimeError('An error occurred while copying the file') from e
 
                 # metadata
@@ -119,7 +119,7 @@ class DiskDict(Writable):
 
             except StorageCorruption:
                 if file.exists():
-                    os.remove(file)
+                    remove_file(file)
 
     def delete(self, key: Key) -> bool:
         file = self._key_to_path(key)
@@ -134,7 +134,7 @@ class DiskDict(Writable):
                 rmtree(file)
             else:
                 size = get_size(file)
-                os.remove(file)
+                remove_file(file)
 
             self.size_tracker.dec(size)
             self.usage_tracker.delete(key)

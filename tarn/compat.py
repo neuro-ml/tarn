@@ -23,14 +23,20 @@ if platform.system() == 'Windows':
         shutil.rmtree(path, ignore_errors=ignore_errors, onerror=remove_readonly)
 
 
-    def get_path_group(path: Union[Path, str]) -> Union[int, None]:
+    def get_path_group(path: PathOrStr) -> Union[int, None]:
         pass
+
+
+    def remove_file(path: PathOrStr):
+        os.chmod(path, stat.S_IWRITE)
+        os.remove(path)
 
 else:
     rmtree = shutil.rmtree
+    remove_file = os.remove
 
 
-    def get_path_group(path: Union[Path, str]) -> Union[int, None]:
+    def get_path_group(path: PathOrStr) -> Union[int, None]:
         return Path(path).stat().st_gid
 
 
