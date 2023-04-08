@@ -3,16 +3,16 @@ import os
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, ContextManager, Iterable, Tuple
+from typing import ContextManager, Iterable, Optional, Tuple
 
-from .interface import Writable
 from ..compat import copy_file, rmtree
-from ..config import root_params, load_config
+from ..config import load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import StorageCorruption
-from ..interface import Keys, PathOrStr, Key, Value, MaybeValue
+from ..interface import Key, Keys, MaybeValue, PathOrStr, Value
 from ..tools import Locker, SizeTracker, UsageTracker
-from ..utils import get_size, create_folders, match_files, match_buffers, adjust_permissions
+from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
+from .interface import Writable
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]

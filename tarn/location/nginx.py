@@ -1,13 +1,13 @@
 from contextlib import contextmanager
-from typing import ContextManager, Iterable, BinaryIO, Optional
+from typing import BinaryIO, ContextManager, Iterable, Optional
 from urllib.parse import urljoin
 
 import requests
 
+from ..config import load_config_buffer
 from ..digest import key_to_relative
 from .disk_dict import Key
-from .interface import MaybeValue, Keys, Location
-from ..config import load_config_buffer
+from .interface import Keys, Location, MaybeValue
 
 
 class Nginx(Location):

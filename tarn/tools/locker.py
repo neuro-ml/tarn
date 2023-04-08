@@ -3,7 +3,7 @@ import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from threading import Lock
-from typing import ContextManager, Optional, AnyStr
+from typing import AnyStr, ContextManager, Optional
 
 from redis import Redis
 from redis.exceptions import NoScriptError

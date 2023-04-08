@@ -1,6 +1,6 @@
 import filecmp
 from pathlib import Path
-from typing import Union, BinaryIO
+from typing import BinaryIO, Union
 
 from .compat import set_path_attrs
 from .interface import Key  # noqa

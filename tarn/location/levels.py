@@ -1,9 +1,9 @@
 import sys
 from contextlib import contextmanager
 from itertools import islice
-from typing import ContextManager, Iterable, Tuple, NamedTuple, Optional, Union
+from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
-from ..interface import Value, MaybeValue, Key, Keys
+from ..interface import Key, Keys, MaybeValue, Value
 from ..location import Location, Writable
 
 

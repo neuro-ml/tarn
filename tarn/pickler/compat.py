@@ -37,15 +37,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import importlib
 import sys
 import warnings
-from weakref import WeakSet
 from collections import ChainMap
 from enum import Enum
 from pickle import _Pickler as Pickler
 from types import ModuleType
-from typing import Union, Set, TypeVar
+from typing import Set, TypeVar, Union
+from weakref import WeakSet
 
 from cloudpickle import CloudPickler
-from cloudpickle.cloudpickle import _whichmodule, _extract_code_globals, _get_cell_contents, _lookup_module_and_qualname
+from cloudpickle.cloudpickle import _extract_code_globals, _get_cell_contents, _lookup_module_and_qualname, _whichmodule
 
 try:
     from gzip import BadGzipFile

@@ -1,4 +1,4 @@
-from .location import Level, Fanout
+from .location import Fanout, Level
 
 
 def StorageLevel(locations, write, replicate, name):

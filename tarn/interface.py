@@ -2,8 +2,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Sequence, Iterable, BinaryIO, Union
-from typing import Tuple, Callable, Any
+from typing import Any, BinaryIO, Callable, Iterable, Optional, Sequence, Tuple, Union
 
 Key = bytes
 Keys = Sequence[Key]

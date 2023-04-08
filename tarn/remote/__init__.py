@@ -1,2 +1,2 @@
-from .ssh import SSHLocation
 from .http import HTTPLocation
+from .ssh import SSHLocation

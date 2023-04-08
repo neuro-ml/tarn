@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import ContextManager, Sequence, Iterable, Tuple, Optional, Type
+from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Type
 
 from ..compat import HashAlgorithm
-from ..interface import MaybeValue, Key, Keys, Value
+from ..interface import Key, Keys, MaybeValue, Value
 
 
 class Location(ABC):

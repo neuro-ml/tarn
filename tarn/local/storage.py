@@ -1,14 +1,14 @@
 import logging
 import warnings
 from pathlib import Path
-from typing import Sequence, Iterable, Union, Optional
+from typing import Iterable, Optional, Sequence, Union
 
-from .disk import Disk
-from ..location import Level, Levels, Location, Fanout
 from ..interface import Key
+from ..location import Fanout, Level, Levels, Location
 from ..pool import HashKeyStorage
 from ..pool.hash_key import resolve_location
 from ..utils import PathLike
+from .disk import Disk
 
 logger = logging.getLogger(__name__)
 

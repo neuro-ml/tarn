@@ -1,11 +1,11 @@
 import logging
 
-from . import CacheIndex
-from .pickler import dumps
-from .. import Level, Levels, Fanout
-from ..local.storage import normalize_levels, Storage
-from ..pool.hash_key import resolve_location, HashKeyStorage
+from .. import Fanout, Level, Levels
+from ..local.storage import Storage, normalize_levels
+from ..pool.hash_key import HashKeyStorage, resolve_location
 from ..pool.pickle_key import PickleKeyStorage
+from .index import CacheIndex
+from .pickler import dumps
 
 logger = logging.getLogger(__name__)
 

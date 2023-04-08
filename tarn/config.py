@@ -2,15 +2,15 @@ import hashlib
 import io
 from functools import partial
 from pathlib import Path
-from typing import Union, Dict, Any, Tuple, Sequence
+from typing import Any, Dict, Sequence, Tuple, Union
 
 import humanfriendly
-from pydantic import BaseModel, Extra, validator, root_validator
-from yaml import safe_load, safe_dump
+from pydantic import BaseModel, Extra, root_validator, validator
+from yaml import safe_dump, safe_load
 
-from .tools import Locker, DummyLocker, SizeTracker, DummySize, UsageTracker, DummyUsage
-from .utils import PathLike, mkdir
 from .compat import get_path_group
+from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker
+from .utils import PathLike, mkdir
 
 CONFIG_NAME = 'config.yml'
 

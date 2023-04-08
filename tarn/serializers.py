@@ -5,13 +5,13 @@ from contextlib import suppress
 from functools import partial
 from gzip import GzipFile
 from pathlib import Path
-from typing import Union, Dict, Callable
+from typing import Callable, Dict, Union
 
 import numpy as np
 
-from .pool import HashKeyStorage
-from .exceptions import ReadError
 from .compat import rmtree
+from .exceptions import ReadError
+from .pool import HashKeyStorage
 
 __all__ = (
     'Serializer', 'SerializerError', 'ChainSerializer', 'DictSerializer',

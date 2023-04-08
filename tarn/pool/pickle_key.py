@@ -4,15 +4,15 @@ from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Sequence, Union, Any, NamedTuple, Optional, Type
+from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
-from .hash_key import HashKeyStorage, resolve_location, LocationsLike
-from ..location import Location, Level
 from ..compat import HashAlgorithm
-from ..exceptions import ReadError, WriteError, StorageCorruption
+from ..exceptions import ReadError, StorageCorruption, WriteError
 from ..interface import Key, PathOrStr
-from ..pickler import dumps, PREVIOUS_VERSIONS
+from ..location import Level, Location
+from ..pickler import PREVIOUS_VERSIONS, dumps
 from ..serializers import Serializer, SerializerError
+from .hash_key import HashKeyStorage, LocationsLike, resolve_location
 
 logger = logging.getLogger(__name__)
 

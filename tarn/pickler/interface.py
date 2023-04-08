@@ -10,16 +10,18 @@ import itertools
 import pickle
 import pickletools
 import types
-from operator import itemgetter
-from typing import NamedTuple, Any
 from contextlib import suppress
 from enum import Enum
 from io import BytesIO
+from operator import itemgetter
+from typing import Any, NamedTuple
 
-from cloudpickle.cloudpickle import is_tornado_coroutine, PYPY, builtin_code_type, \
+from cloudpickle.cloudpickle import (
+    is_tornado_coroutine, PYPY, builtin_code_type,
     _rebuild_tornado_coroutine, _find_imported_submodules, _BUILTIN_TYPE_NAMES, _builtin_type, _extract_class_dict
+)
 
-from .compat import DISPATCH, extract_func_data, Pickler, get_pickle_mode, PickleMode
+from .compat import DISPATCH, PickleMode, Pickler, extract_func_data, get_pickle_mode
 
 
 def sort_dict(d):

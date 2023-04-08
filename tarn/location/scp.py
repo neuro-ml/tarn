@@ -4,18 +4,18 @@ import socket
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Sequence, Iterable, ContextManager, Tuple
+from typing import ContextManager, Iterable, Sequence, Tuple, Union
 
 import paramiko
-from paramiko import SSHClient, AuthenticationException, SSHException
+from paramiko import AuthenticationException, SSHClient, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
-from .interface import Location
 from ..config import load_config
 from ..digest import key_to_relative
-from ..interface import Keys, MaybeValue, PathOrStr, Key
+from ..interface import Key, Keys, MaybeValue, PathOrStr
+from .interface import Location
 
 
 class UnknownHostException(SSHException):

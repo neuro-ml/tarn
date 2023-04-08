@@ -1,12 +1,12 @@
 import os
 from contextlib import contextmanager
-from typing import Iterable, Tuple, Callable, Any, ContextManager, Optional, Union, Type, Sequence
+from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from ..compat import HashAlgorithm
 from ..digest import digest_value
-from ..exceptions import WriteError, ReadError
-from ..interface import Keys, Key, MaybeValue, PathOrStr
-from ..location import Location, DiskDict, Fanout, Levels
+from ..exceptions import ReadError, WriteError
+from ..interface import Key, Keys, MaybeValue, PathOrStr
+from ..location import DiskDict, Fanout, Levels, Location
 
 LocationLike = Union[Location, PathOrStr]
 LocationsLike = Union[LocationLike, Sequence[LocationLike]]

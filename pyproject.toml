@@ -53,3 +53,8 @@ per-file-ignores = [
 ]
 max-line-length = 120
 banned-modules = "tarn.* = Use relative imports"
+
+[tool.isort]
+line_length = 120
+profile = 'black'
+combine_as_imports = true
