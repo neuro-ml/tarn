@@ -1,4 +1,5 @@
 import os
+import shutil
 import socket
 import tempfile
 from contextlib import contextmanager
@@ -66,7 +67,14 @@ class SCP(Location):
                     if not source.exists():
                         yield None
                     else:
-                        yield source
+                        # TODO: legacy
+                        if source.is_dir():
+                            yield source / 'data'
+                            shutil.rmtree(source)
+
+                        else:
+                            yield source
+                            os.remove(source)
 
                 except (SCPException, socket.timeout, SSHException):
                     yield None

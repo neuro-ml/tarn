@@ -2,7 +2,7 @@ import logging
 
 from . import CacheIndex
 from .pickler import dumps
-from .. import Level, Levels
+from .. import Level, Levels, Fanout
 from ..local.storage import normalize_levels, Storage
 from ..pool.hash_key import resolve_location, HashKeyStorage
 from ..pool.pickle_key import PickleKeyStorage
@@ -15,7 +15,7 @@ class CacheStorage(PickleKeyStorage):
         levels = list(normalize_levels(local, CacheIndex))
         cache_index = levels[0].location._locations[0]
         if remote:
-            levels.append(remote)
+            levels.append(Fanout(*remote))
         storage = cache_index.storage
         if isinstance(storage, Storage):
             storage = HashKeyStorage(storage._local, storage._remote, storage._fetch, storage._error, storage.algorithm)
