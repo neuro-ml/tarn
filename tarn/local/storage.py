@@ -1,77 +1,49 @@
 import logging
 import warnings
-from functools import partial
 from pathlib import Path
-from typing import Sequence, Iterable, Callable, Union
+from typing import Iterable, Optional, Sequence, Union
 
-from ..digest import digest_file
-from ..exceptions import ReadError
-from ..interface import StorageBase, Key, RemoteStorage, WriteError, StorageLevel
+from ..interface import Key
+from ..location import Fanout, Level, Levels, Location
+from ..pool import HashKeyStorage
+from ..pool.hash_key import resolve_location
 from ..utils import PathLike
 from .disk import Disk
 
 logger = logging.getLogger(__name__)
 
 
-class Storage:
-    def __init__(self, *local: Union[StorageLevel, Sequence[Disk], Disk, Sequence[PathLike], PathLike],
-                 remote: Sequence[RemoteStorage] = ()):
-        normalized = tuple(normalize_levels(local, Disk))
-
-        self.storage = StorageBase(*normalized, remote=remote)
-        self.algorithm = self.storage.hash.build()
-        self.digest_size = sum(normalized[0].locations[0].levels)
+class Storage(HashKeyStorage):
+    def __init__(self, *local: Union[Level, Sequence[Disk], Disk, Sequence[PathLike], PathLike],
+                 remote: Sequence[Location] = ()):
+        warnings.warn('This interface is deprecated. Use `HashKeyStorage` instead', UserWarning)
+        warnings.warn('This interface is deprecated. Use `HashKeyStorage` instead', DeprecationWarning)
+        super().__init__(Levels(*map(_resolve, local)), remote)
 
     @property
-    def levels(self) -> Sequence[StorageLevel]:
-        return self.storage.levels
+    def levels(self):
+        return self._local._levels
 
-    def read(self, func: Callable, key: Key, *args, fetch: bool = True, error: bool = True, **kwargs):
-        value, success = self.storage.read(key, lambda x: func(x, *args, **kwargs), fetch=fetch)
-        if not error:
-            return value, bool(success)
-
-        if success:
-            return value
-        if success is None:
-            raise WriteError(f"The key {key} couldn't be written to any storage")
-        if fetch:
-            message = f'Key {key} is not present neither locally nor among your {len(self.storage.remote)} remotes'
-        else:
-            message = f'Key {key} is not present locally'
-        raise ReadError(message)
-
-    def write(self, file: PathLike, error: bool = True) -> Union[Key, None]:
-        file = Path(file)
-        assert file.exists(), file
-        key = digest_file(file, self.algorithm)
-        if not self.storage.write(key, file, None):
-            if error:
-                raise WriteError('The file could not be written to any storage')
-            return None
-
-        return key
+    def write(self, value, error: bool = True) -> Optional[str]:
+        result = super().write(value, error)
+        if result is not None:
+            return result.hex()
 
     def fetch(self, keys: Sequence[Key], *, verbose: bool, legacy: bool = True) -> Iterable[Key]:
         """ Fetch the `keys` from remote. Yields the keys that were successfully fetched """
-        keys = list(keys)
-        result = self.storage.fetch(keys, None, verbose=verbose)
-        if legacy:
-            warnings.warn(
-                'In a future release fetch will yield the successfully processed keys. '
-                'Pass legacy=False to adopt this behaviour early on', UserWarning,
-            )
-            warnings.warn(
-                'In a future release fetch will yield the successfully processed keys. '
-                'Pass legacy=False to adopt this behaviour early on', DeprecationWarning,
-            )
-            result = list(set(keys) - set(result))
-
-        return result
+        for key, success in super().fetch(keys):
+            if (success and not legacy) or (not success and legacy):
+                yield key
 
     def resolve(self, key: Key, *, fetch: bool = True) -> Path:
         """ This is not safe, but it's fast. """
         return self.read(lambda path: path, key, fetch=fetch)
+
+
+def _resolve(x):
+    if isinstance(x, Level):
+        return x
+    return resolve_location(x)
 
 
 def normalize_levels(levels, cls):
@@ -80,7 +52,7 @@ def normalize_levels(levels, cls):
             entry = cls(entry)
         if isinstance(entry, cls):
             entry = entry,
-        if not isinstance(entry, StorageLevel):
-            entry = StorageLevel(entry, True, True)
+        if not isinstance(entry, Level):
+            entry = Level(Fanout(*entry), True, True)
 
         yield entry

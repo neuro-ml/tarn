@@ -1,5 +1,8 @@
 from .__version__ import __version__
-from .interface import WriteError, RemoteStorage, StorageLevel
 from .exceptions import *
+from .interface import RemoteStorage
+from .legacy import StorageLevel
 from .local import *
+from .location import *
+from .pool import *
 from .remote import *

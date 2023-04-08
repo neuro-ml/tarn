@@ -1,61 +1,62 @@
-import os
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
-from ..compat import get_path_group, set_path_attrs
-from ..utils import Key
+from ..compat import get_path_group, remove_file, set_path_attrs
+from ..digest import key_to_relative
+from ..interface import Key
 
 __all__ = 'UsageTracker', 'DummyUsage', 'StatUsage'
 
 
 class UsageTracker(ABC):
-    @abstractmethod
-    def update(self, key: Key, base: Path):
-        """ Updates the usage time for a given ``key`` """
+    def __init__(self, root: Path):
+        self.root = root
 
     @abstractmethod
-    def delete(self, key: Key, base: Path):
-        """ Deletes the usage time for a given ``key`` """
+    def update(self, key: Key, path: Path):
+        """ Updates the usage time for a given `key` """
 
     @abstractmethod
-    def get(self, key: Key, base: Path) -> Union[datetime, None]:
-        """ Deletes the usage time for a given ``key`` """
+    def get(self, key: Key, path: Path) -> Optional[datetime]:
+        """ Deletes the usage time for a given `key` """
+
+    @abstractmethod
+    def delete(self, key: Key):
+        """ Deletes the usage time for a given `key` """
 
 
 class DummyUsage(UsageTracker):
-    def update(self, key: Key, base: Path):
+    def update(self, key: Key, path: Path):
         pass
 
-    def delete(self, key: Key, base: Path):
-        pass
-
-    def get(self, key: Key, base: Path) -> Union[datetime, None]:
+    def get(self, key: Key, path: Path) -> Optional[datetime]:
         return None
+
+    def delete(self, key: Key):
+        pass
 
 
 class StatUsage(UsageTracker):
-    def update(self, key: Key, base: Path):
-        mark = self._mark(base)
+    def update(self, key: Key, path: Path):
+        mark = self._mark(key)
         missing = not mark.exists()
         mark.touch(exist_ok=True)
         if missing:
-            set_path_attrs(mark, 0o777, get_path_group(base))
+            set_path_attrs(mark, 0o777, get_path_group(path))
 
-    def delete(self, key: Key, base: Path):
-        mark = self._mark(base)
+    def delete(self, key: Key):
+        mark = self._mark(key)
         if mark.exists():
-            os.remove(mark)
+            remove_file(mark)
 
-    def get(self, key: Key, base: Path) -> Union[datetime, None]:
-        mark = self._mark(base)
+    def get(self, key: Key, path: Path) -> Optional[datetime]:
+        mark = self._mark(key)
         if mark.exists():
-            stamp = mark.stat().st_mtime
-        else:
-            stamp = base.stat().st_mtime
-        return datetime.fromtimestamp(stamp)
+            return datetime.fromtimestamp(mark.stat().st_mtime)
 
-    @staticmethod
-    def _mark(base: Path):
-        return base / '.time'
+    def _mark(self, key):
+        mark = self.root / key_to_relative(key, (1, len(key) - 1))
+        mark.parent.mkdir(parents=True, exist_ok=True)
+        return mark

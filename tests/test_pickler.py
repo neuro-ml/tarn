@@ -1,16 +1,16 @@
-from functools import partial
+from functools import partial, lru_cache
 from hashlib import sha256
 
 import numpy as np
 import pytest
-from tarn.cache.compat import STABLE_OBJECTS, UNSTABLE_OBJECTS
 
+from tarn.cache import is_stable, is_unstable
+from tarn.pickler.compat import STABLE_OBJECTS, UNSTABLE_OBJECTS
+from tarn.pickler.interface import dumps, AVAILABLE_VERSIONS
 from pickler_test_helpers import functions
 from pickler_test_helpers import functions2
 from pickler_test_helpers import classes
 from pickler_test_helpers import classes2
-from tarn.cache import is_stable, is_unstable
-from tarn.cache.pickler import dumps, AVAILABLE_VERSIONS
 
 
 def assert_same_hash(reference, version, obj, references):
@@ -142,7 +142,8 @@ def test_stable(version, pickle_references):
     UNSTABLE_OBJECTS.clear()
 
 
+@pytest.mark.parametrize('value', [np.dtype, lru_cache(100)(lambda x: x)])
 @pytest.mark.parametrize('version', AVAILABLE_VERSIONS)
-def test_special_cases(version):
+def test_special_cases(value, version):
     dumper = partial(dumps, version=version)
-    dumper(np.dtype)
+    dumper(value)

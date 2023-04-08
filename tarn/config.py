@@ -1,15 +1,16 @@
 import hashlib
+import io
 from functools import partial
 from pathlib import Path
-from typing import Union, Dict, Any, Tuple, Sequence
+from typing import Any, Dict, Sequence, Tuple, Union
 
 import humanfriendly
-from pydantic import BaseModel, Extra, validator, root_validator
-from yaml import safe_load, safe_dump
+from pydantic import BaseModel, Extra, root_validator, validator
+from yaml import safe_dump, safe_load
 
-from .tools import Locker, DummyLocker, SizeTracker, DummySize, UsageTracker, DummyUsage
-from .utils import PathLike, mkdir
 from .compat import get_path_group
+from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker
+from .utils import PathLike, mkdir
 
 CONFIG_NAME = 'config.yml'
 
@@ -72,11 +73,11 @@ class StorageConfig(_NoExtra):
     version: str = None
 
     @staticmethod
-    def _make(base, dummy, config):
+    def _make(base, dummy, config, *args):
         if config is None:
-            return dummy()
+            return dummy(*args)
         cls = find_subclass(base, config.name)
-        return cls(*config.args, **config.kwargs)
+        return cls(*args, *config.args, **config.kwargs)
 
     def make_locker(self) -> Locker:
         return self._make(Locker, DummyLocker, self.locker)
@@ -84,8 +85,8 @@ class StorageConfig(_NoExtra):
     def make_size(self) -> SizeTracker:
         return self._make(SizeTracker, DummySize, self.size)
 
-    def make_usage(self) -> UsageTracker:
-        return self._make(UsageTracker, DummyUsage, self.usage)
+    def make_usage(self, root: Path) -> UsageTracker:
+        return self._make(UsageTracker, DummyUsage, self.usage, root)
 
     @validator('free_disk_size', 'max_size')
     def to_size(cls, v):
@@ -108,6 +109,10 @@ class StorageConfig(_NoExtra):
 def root_params(root: Path):
     stat = root.stat()
     return stat.st_mode & 0o777, get_path_group(root)
+
+
+def load_config_buffer(data: str) -> StorageConfig:
+    return StorageConfig.parse_obj(safe_load(io.StringIO(data)))
 
 
 def load_config(root: PathLike) -> StorageConfig:
