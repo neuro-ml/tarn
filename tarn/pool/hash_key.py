@@ -37,15 +37,16 @@ class HashKeyStorage:
         for key, value in self._full.read_batch(keys):
             yield key, value is not None
 
-    def read(self, func_or_key, *args, **kwargs):
+    def read(self, func_or_key, *args, fetch: Optional[bool] = None, error: Optional[bool] = None, **kwargs):
         if callable(func_or_key):
-            return self._read_func(func_or_key, *args, **kwargs)
+            return self._read_func(func_or_key, *args, error=error, fetch=fetch, **kwargs)
         return self._read_context(func_or_key, *args, **kwargs)
 
     @contextmanager
-    def _read_context(self, key: Key, fetch: Optional[bool] = None,
-                      error: Optional[bool] = None) -> ContextManager[MaybeValue]:
-        # TODO: resolve args
+    def _read_context(self, key, fetch, error) -> ContextManager[MaybeValue]:
+        fetch = self._resolve_value(fetch, self._fetch, 'fetch')
+        error = self._resolve_value(error, self._error, 'error')
+
         if isinstance(key, str):
             key = bytes.fromhex(key)
         location = self._full if fetch else self._local
@@ -54,13 +55,14 @@ class HashKeyStorage:
                 raise ReadError(f'The key {key.hex()} is not found')
             yield value
 
-    def _read_func(self, func: Callable, key: Key, *args, fetch: Optional[bool] = None, error: Optional[bool] = None,
-                   **kwargs) -> Any:
+    def _read_func(self, func: Callable, key: Key, *args, fetch, error, **kwargs) -> Any:
         with self._read_context(key, fetch, error) as value:
             return func(value, *args, **kwargs)
 
     # TODO: add support for buffers
-    def write(self, value: PathOrStr, error: bool = True) -> Optional[Key]:
+    def write(self, value: PathOrStr, error: Optional[bool] = None) -> Optional[Key]:
+        error = self._resolve_value(error, self._error, 'error')
+
         digest = digest_value(value, self.algorithm)
         with self._local.write(digest, value) as written:
             # TODO: check digest?
@@ -70,6 +72,14 @@ class HashKeyStorage:
                 return None
 
         return digest
+
+    @staticmethod
+    def _resolve_value(current, preset, name):
+        if current is None:
+            current = preset
+        if current is None:
+            raise ValueError(f'Must provide a value for the "{name}" argument')
+        return current
 
 
 def resolve_location(location):

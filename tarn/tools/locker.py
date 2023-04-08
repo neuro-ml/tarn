@@ -84,7 +84,7 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            self._safe_eval(self._stop_reading, 1, self._prefix + key)
+            self._safe_eval(self._stop_reading_script, 1, self._prefix + key)
 
     @contextmanager
     def write(self, key: Key) -> ContextManager[None]:
@@ -95,20 +95,20 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            self._safe_eval(self._stop_writing, 1, self._prefix + key)
+            self._safe_eval(self._stop_writing_script, 1, self._prefix + key)
 
     def _update_scripts(self):
         expire = self._expire
         # TODO: how slow are these checks?
         # language=Lua
-        self._stop_writing = self._redis.script_load('''
+        self._stop_writing_script = self._redis.script_load('''
         if redis.call('get', KEYS[1]) == '-1' then
             redis.call('del', KEYS[1])
         else
             error('')
         end''')
         # language=Lua
-        self._start_reading = self._redis.script_load(f'''
+        self._start_reading_script = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
         if lock == '-1' then
             return 0
@@ -120,7 +120,7 @@ class RedisLocker(Locker):
             return 1
         end''')
         # language=Lua
-        self._stop_reading = self._redis.script_load(f'''
+        self._stop_reading_script = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
         if lock == '1' then
             redis.call('del', KEYS[1])
@@ -141,7 +141,7 @@ class RedisLocker(Locker):
         return bool(self._redis.set(self._prefix + key, -1, nx=True, ex=self._expire))
 
     def _start_reading(self, key: Key) -> bool:
-        return bool(self._safe_eval(self._start_reading, 1, self._prefix + key))
+        return bool(self._safe_eval(self._start_reading_script, 1, self._prefix + key))
 
 
 def wait_for_true(func, key, sleep_time, max_iterations):

@@ -41,6 +41,10 @@ class Nginx(Location):
             return
 
         with requests.get(urljoin(self.url, str(key_to_relative(key, self.levels))), stream=True) as request:
+            if not request.ok:
+                yield None
+                return
+
             with request.raw as raw:
                 yield raw
 
@@ -51,5 +55,5 @@ class Nginx(Location):
                     config = load_config_buffer(request.text)
                     self.hash, self.levels = config.hash.build(), config.levels
 
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.RequestException:
             pass

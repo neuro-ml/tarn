@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 
-from tarn import Nginx, ReadError
+from tarn import Nginx, ReadError, HashKeyStorage
 
 
 def load_text(path):
@@ -9,7 +11,7 @@ def load_text(path):
 
 
 STORAGE_ROOT = '/tmp/http'
-STORAGE_URL = 'http://localhost/'
+STORAGE_URL = 'http://localhost:8765'
 
 
 @pytest.mark.nginx
@@ -17,14 +19,10 @@ def test_nginx_storage(storage_factory):
     with storage_factory() as local, storage_factory(root=STORAGE_ROOT, exist_ok=True) as remote:
         key = remote.write(__file__)
         with pytest.raises(ReadError):
-            local.resolve(key)
+            local.read(load_text, key)
 
-        # add a remote
-        local.storage.remote = [Nginx(STORAGE_URL)]
-        with pytest.raises(ReadError, match=r'^Key \w+ is not present locally$'):
-            local.read(load_text, key, fetch=False)
-
-        assert local.read(load_text, key) == remote.read(load_text, key) == load_text(__file__)
+        both = HashKeyStorage(local._local, Nginx(STORAGE_URL))
+        assert both.read(load_text, key) == load_text(__file__)
         local.read(load_text, key)
 
 
@@ -32,13 +30,17 @@ def test_nginx_storage(storage_factory):
 def test_missing(storage_factory):
     with storage_factory(root=STORAGE_ROOT, exist_ok=True) as remote:
         location = Nginx(STORAGE_URL)
-        with pytest.raises(AssertionError):
-            location._get_config(None)
+        location._get_config()
 
         key = remote.write(__file__)
-        missing = key[:-1] + 'x'
-        result = list(location.fetch([key, missing], lambda k, base: (base / 'data').exists(), location.hash))
-        assert result == [(True, True), (None, False)]
+        missing = key[::-1]
+        for k, v in location.read_batch([key, missing]):
+            if k == key:
+                assert v is not None
+                with v as result:
+                    assert result.read() == Path(__file__).read_bytes()
+            else:
+                assert v is None
 
 
 def test_wrong_address():

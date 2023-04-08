@@ -7,7 +7,6 @@ from typing import Iterator
 import pytest
 
 from tarn import Storage, DiskDict, PickleKeyStorage
-from tarn.cache import CacheStorage, CacheIndex
 from tarn.config import init_storage, StorageConfig
 from tarn.pool import HashKeyStorage
 
@@ -53,7 +52,7 @@ def storage_factory():
             root = Path(root)
 
             roots = []
-            for name in names:
+            for name in names or [Path()]:
                 local = root / name
                 roots.append(local)
                 init_storage(StorageConfig(
