@@ -6,6 +6,7 @@ from typing import Optional
 from ..compat import get_path_group, remove_file, set_path_attrs
 from ..digest import key_to_relative
 from ..interface import Key
+from ..utils import create_folders
 
 __all__ = 'UsageTracker', 'DummyUsage', 'StatUsage'
 
@@ -42,9 +43,11 @@ class StatUsage(UsageTracker):
     def update(self, key: Key, path: Path):
         mark = self._mark(key)
         missing = not mark.exists()
+        group = get_path_group(path)
+        create_folders(mark.parent, 0o777, group)
         mark.touch(exist_ok=True)
         if missing:
-            set_path_attrs(mark, 0o777, get_path_group(path))
+            set_path_attrs(mark, 0o777, group)
 
     def delete(self, key: Key):
         mark = self._mark(key)
@@ -57,6 +60,4 @@ class StatUsage(UsageTracker):
             return datetime.fromtimestamp(mark.stat().st_mtime)
 
     def _mark(self, key):
-        mark = self.root / key_to_relative(key, (1, len(key) - 1))
-        mark.parent.mkdir(parents=True, exist_ok=True)
-        return mark
+        return self.root / key_to_relative(key, (1, len(key) - 1))
