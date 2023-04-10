@@ -153,4 +153,4 @@ def _unpack_mapping(path: Path):
 
     else:
         # TODO: warn
-        yield path / 'data'
+        yield path
