@@ -29,6 +29,7 @@ class DiskDict(Writable):
         self.root = root
         self.permissions, self.group = root_params(self.root)
         usage_folder = self.root / 'tools/usage'
+        # FIXME: race condition
         create_folders(usage_folder, self.permissions, self.group)
 
         self.locker: Locker = config.make_locker()

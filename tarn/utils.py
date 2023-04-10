@@ -32,7 +32,7 @@ def mkdir(path: Path, permissions: Union[int, None], group: Union[str, int, None
 def create_folders(path: Path, permissions, group):
     if not path.exists():
         create_folders(path.parent, permissions, group)
-        mkdir(path, permissions, group)
+        mkdir(path, permissions, group, exist_ok=True)
 
 
 # TODO: need functions that return bool
