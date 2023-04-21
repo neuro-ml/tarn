@@ -29,7 +29,6 @@ class DiskDict(Writable):
         self.root = root
         self.permissions, self.group = root_params(self.root)
         usage_folder = self.root / 'tools/usage'
-        # FIXME: race condition
         create_folders(usage_folder, self.permissions, self.group)
 
         self.locker: Locker = config.make_locker()
@@ -81,12 +80,7 @@ class DiskDict(Writable):
                     if file.is_dir():
                         file = file / 'data'
 
-                    if _is_pathlike(value):
-                        match_files(value, file)
-                    else:
-                        with open(file, 'rb') as dst:
-                            match_buffers(value, dst, context=key.hex())
-
+                    _match(value, file, key)
                     yield file
                     return
 
@@ -99,13 +93,22 @@ class DiskDict(Writable):
                     # create base folders
                     create_folders(file.parent, self.permissions, self.group)
                     # populate the folder
-                    if _is_pathlike(value):
-                        copy_file(value, file)
-                    else:
-                        with open(file, 'wb') as dst:
-                            shutil.copyfileobj(value, dst)
+                    # TODO: make this an atomic operation
+                    #  now this is just an ugly crutch
+                    try:
+                        if _is_pathlike(value):
+                            copy_file(value, file)
+                        else:
+                            with open(file, 'wb') as dst:
+                                shutil.copyfileobj(value, dst)
 
-                    adjust_permissions(file, self.permissions, self.group, read_only=True)
+                    except PermissionError:
+                        if not file.exists():
+                            raise
+                        _match(value, file, key)
+
+                    else:
+                        adjust_permissions(file, self.permissions, self.group, read_only=True)
 
                 except BaseException as e:
                     if file.exists():
@@ -159,3 +162,11 @@ class DiskDict(Writable):
 
 def _is_pathlike(x):
     return isinstance(x, (os.PathLike, str))
+
+
+def _match(value, file, key):
+    if _is_pathlike(value):
+        match_files(value, file)
+    else:
+        with open(file, 'rb') as dst:
+            match_buffers(value, dst, context=key.hex())

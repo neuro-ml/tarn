@@ -17,7 +17,7 @@ class Level(NamedTuple):
 class Levels(Writable):
     def __init__(self, *levels: Union[Level, Location]):
         levels = [
-            Level(level, write=True, replicate=True) if isinstance(level, Location) else level
+            level if isinstance(level, Level) else Level(level, write=True, replicate=True)
             for level in levels
         ]
         sizes = {level.location.key_size for level in levels if level.location.key_size is not None}

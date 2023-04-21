@@ -58,6 +58,11 @@ class StatUsage(UsageTracker):
         mark = self._mark(key)
         if mark.exists():
             return datetime.fromtimestamp(mark.stat().st_mtime)
+        # TODO: legacy
+        if path.exists() and path.is_dir():
+            mark = path / '.time'
+            if mark.exists():
+                return datetime.fromtimestamp(mark.stat().st_mtime)
 
     def _mark(self, key):
         return self.root / key_to_relative(key, (1, len(key) - 1))

@@ -9,8 +9,9 @@ from pydantic import BaseModel, Extra, root_validator, validator
 from yaml import safe_dump, safe_load
 
 from .compat import get_path_group
+from .interface import PathOrStr
 from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker
-from .utils import PathLike, mkdir
+from .utils import mkdir
 
 CONFIG_NAME = 'config.yml'
 
@@ -115,7 +116,7 @@ def load_config_buffer(data: str) -> StorageConfig:
     return StorageConfig.parse_obj(safe_load(io.StringIO(data)))
 
 
-def load_config(root: PathLike) -> StorageConfig:
+def load_config(root: PathOrStr) -> StorageConfig:
     with open(Path(root) / CONFIG_NAME) as file:
         return StorageConfig.parse_obj(safe_load(file))
 
@@ -137,7 +138,7 @@ def find_subclass(base, name):
     raise ValueError(f'Could not find a {base.__name__} named {name}')
 
 
-def init_storage(config: StorageConfig, root: PathLike, *,
+def init_storage(config: StorageConfig, root: PathOrStr, *,
                  permissions: Union[int, None] = None, group: Union[str, int, None] = None, exist_ok: bool = False):
     root = Path(root)
     mkdir(root, permissions, group, parents=True, exist_ok=exist_ok)
