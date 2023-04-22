@@ -80,6 +80,8 @@ class PickleKeyStorage:
                 assert relative not in mapping
                 mapping[relative] = self.storage.write(file).hex()
 
+        # we want a reproducible mapping each time
+        mapping = {k: mapping[k] for k in sorted(mapping)}
         logger.info('Saving to index %s', digest)
         with self.index.write(digest, BytesIO(json.dumps(mapping).encode())) as written:
             if written is None:

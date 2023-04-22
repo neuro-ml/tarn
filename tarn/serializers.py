@@ -168,11 +168,11 @@ class DictSerializer(Serializer):
 
         try:
             keys_to_folder = {}
-            for index, (key, value) in enumerate(data.items()):
+            for index, key in enumerate(sorted(data)):
                 keys_to_folder[index] = key
                 sub_folder = folder / str(index)
                 sub_folder.mkdir()
-                self.serializer.save(value, sub_folder)
+                self.serializer.save(data[key], sub_folder)
 
         except SerializerError:
             # remove the partially saved object
