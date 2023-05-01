@@ -84,7 +84,9 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            self._safe_eval(self._stop_reading_script, 1, self._prefix + key)
+            success = self._safe_eval(self._stop_reading_script, 1, self._prefix + key)
+        if not success:
+            raise RuntimeError('The locker is in a wrong state. Did it expire?')
 
     @contextmanager
     def write(self, key: Key) -> ContextManager[None]:
@@ -95,7 +97,9 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            self._safe_eval(self._stop_writing_script, 1, self._prefix + key)
+            success = self._safe_eval(self._stop_writing_script, 1, self._prefix + key)
+        if not success:
+            raise RuntimeError('The locker is in a wrong state. Did it expire?')
 
     def _update_scripts(self):
         expire = self._expire
@@ -104,8 +108,9 @@ class RedisLocker(Locker):
         self._stop_writing_script = self._redis.script_load('''
         if redis.call('get', KEYS[1]) == '-1' then
             redis.call('del', KEYS[1])
+            return 1
         else
-            error('')
+            return 0
         end''')
         # language=Lua
         self._start_reading_script = self._redis.script_load(f'''
@@ -122,20 +127,26 @@ class RedisLocker(Locker):
         # language=Lua
         self._stop_reading_script = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
-        if lock == '1' then
+        if lock == false then 
+            return 0
+        elseif lock == '1' then
             redis.call('del', KEYS[1])
+            return 1
         elseif tonumber(lock) < 1 then
-            error('')
+            return 0
         else
             redis.call('set', KEYS[1], lock - 1, 'EX', {expire})
+            return 1
         end''')
 
     def _safe_eval(self, *args):
         try:
             return self._redis.evalsha(*args)
         except NoScriptError:
-            self._update_scripts()
-            return self._redis.evalsha(*args)
+            pass
+
+        self._update_scripts()
+        return self._redis.evalsha(*args)
 
     def _start_writing(self, key: Key) -> bool:
         return bool(self._redis.set(self._prefix + key, -1, nx=True, ex=self._expire))
