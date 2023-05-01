@@ -3,18 +3,17 @@ import warnings
 from pathlib import Path
 from typing import Iterable, Optional, Sequence, Union
 
-from ..interface import Key
+from ..interface import Key, PathOrStr
 from ..location import Fanout, Level, Levels, Location
 from ..pool import HashKeyStorage
 from ..pool.hash_key import resolve_location
-from ..utils import PathLike
 from .disk import Disk
 
 logger = logging.getLogger(__name__)
 
 
 class Storage(HashKeyStorage):
-    def __init__(self, *local: Union[Level, Sequence[Disk], Disk, Sequence[PathLike], PathLike],
+    def __init__(self, *local: Union[Level, Sequence[Disk], Disk, Sequence[PathOrStr], PathOrStr],
                  remote: Sequence[Location] = ()):
         warnings.warn('This interface is deprecated. Use `HashKeyStorage` instead', UserWarning)
         warnings.warn('This interface is deprecated. Use `HashKeyStorage` instead', DeprecationWarning)

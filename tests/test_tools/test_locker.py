@@ -5,6 +5,20 @@ from multiprocessing.context import Process
 
 import pytest
 
+from tarn.tools import RedisLocker
+
+
+@pytest.mark.redis
+def test_redis_expire(redis_hostname):
+    locker = RedisLocker(redis_hostname, prefix='', expire=1)
+    with pytest.raises(RuntimeError, match='The locker is in a wrong state. Did it expire?'):
+        with locker.read(b'\x00'):
+            time.sleep(2)
+
+    with pytest.raises(RuntimeError, match='The locker is in a wrong state. Did it expire?'):
+        with locker.write(b'\x00'):
+            time.sleep(2)
+
 
 @pytest.mark.redis
 def test_parallel_read_threads(storage_factory, subtests, redis_hostname):
