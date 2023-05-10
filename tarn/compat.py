@@ -10,6 +10,10 @@ try:
     from typing import Protocol
 except ImportError:
     Protocol = object
+try:
+    from gzip import BadGzipFile
+except ImportError:
+    BadGzipFile = OSError
 
 from .interface import PathOrStr
 
