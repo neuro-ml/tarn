@@ -9,18 +9,14 @@ from typing import Callable, Dict, Union
 
 import numpy as np
 
-from .compat import rmtree
-from .exceptions import ReadError
+from .compat import rmtree, BadGzipFile
+from .exceptions import SerializerError, DeserializationError
 from .pool import HashKeyStorage
 
 __all__ = (
     'Serializer', 'SerializerError', 'ChainSerializer', 'DictSerializer',
     'NumpySerializer', 'JsonSerializer', 'PickleSerializer',
 )
-
-
-class SerializerError(Exception):
-    pass
 
 
 class Serializer(ABC):
@@ -153,8 +149,10 @@ class NumpySerializer(Serializer):
 
         try:
             return self._load_file(storage, loader, path)
-        except ValueError as e:
-            raise ReadError from e
+        except (ValueError, EOFError) as e:
+            raise DeserializationError from e
+        except BadGzipFile as e:
+            raise SerializerError from e
 
 
 class DictSerializer(Serializer):

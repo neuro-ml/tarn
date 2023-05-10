@@ -12,3 +12,11 @@ class WriteError(StorageError):
 
 class ReadError(StorageError):
     pass
+
+
+class SerializerError(Exception):
+    """The current serializer can't work with the given object/path"""
+
+
+class DeserializationError(ReadError):
+    """Something is wrong with the data being deserialized"""

@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
-from ..exceptions import ReadError, StorageCorruption, WriteError
+from ..exceptions import ReadError, StorageCorruption, WriteError, DeserializationError
 from ..interface import Key, PathOrStr
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
@@ -99,7 +99,8 @@ class PickleKeyStorage:
             with _unpack_mapping(index) as folder:
                 try:
                     return self.serializer.load(folder, self.storage), True
-                except ReadError as e:
+                # either the data is corrupted or missing
+                except (DeserializationError, ReadError) as e:
                     raise StorageCorruption from e
 
                 except SerializerError:
