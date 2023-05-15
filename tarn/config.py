@@ -10,7 +10,7 @@ from yaml import safe_dump, safe_load
 
 from .compat import get_path_group
 from .interface import PathOrStr
-from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker
+from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker, LabelsStorage, DummyLabels
 from .utils import mkdir
 
 CONFIG_NAME = 'config.yml'
@@ -69,6 +69,7 @@ class StorageConfig(_NoExtra):
     locker: ToolConfig = None
     size: ToolConfig = None
     usage: ToolConfig = None
+    labels: ToolConfig = None
     free_disk_size: Union[int, str] = 0
     max_size: Union[int, str] = None
     version: str = None
@@ -88,6 +89,9 @@ class StorageConfig(_NoExtra):
 
     def make_usage(self, root: Path) -> UsageTracker:
         return self._make(UsageTracker, DummyUsage, self.usage, root)
+
+    def make_labels(self, root: Path) -> LabelsStorage:
+        return self._make(LabelsStorage, DummyLabels, self.labels, root)
 
     @validator('free_disk_size', 'max_size')
     def to_size(cls, v):

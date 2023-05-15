@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import ContextManager, Iterable, Tuple
 
-from ..interface import Key, Keys, MaybeValue, Value
+from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels
 from .interface import Location, Writable
 
 
@@ -35,11 +35,11 @@ class Fanout(Writable):
         yield None
 
     @contextmanager
-    def write(self, key: Key, value: Value) -> ContextManager[MaybeValue]:
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         raised = False
         for location in self._locations:
             if isinstance(location, Writable):
-                with location.write(key, value) as written:
+                with location.write(key, value, labels) as written:
                     if written is not None:
                         try:
                             yield written

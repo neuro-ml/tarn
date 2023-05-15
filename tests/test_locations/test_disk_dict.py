@@ -22,7 +22,7 @@ def test_read_only(random_disk_dict):
     location = random_disk_dict
     key, value = b'0' * sum(location.levels), Path(__file__)
     # neither during write
-    with location.write(key, value) as result:
+    with location.write(key, value, None) as result:
         assert result.read_bytes() == value.read_bytes()
 
         with pytest.raises(PermissionError):
@@ -36,7 +36,7 @@ def test_read_only(random_disk_dict):
             result.write_bytes(b'')
 
     # nor repeated write
-    with location.write(key, value) as result:
+    with location.write(key, value, None) as result:
         assert result.read_bytes() == value.read_bytes()
 
         with pytest.raises(PermissionError):
@@ -80,9 +80,9 @@ def test_layers(temp_dir):
     assert key == storage.write(target)
 
     # only the first level is written to
-    assert len(list(a1.root.glob('*/*'))) == 2
+    assert len(_glob(a1)) == 1
     for x in [b1, b2, c1]:
-        assert len(list(x.root.glob('*/*'))) == 1
+        assert len(_glob(x)) == 0
 
     # now spin the replication
     storage = HashKeyStorage(Levels(
@@ -93,7 +93,11 @@ def test_layers(temp_dir):
 
     # now the first level is written to
     for x in [a1, b1]:
-        assert len(list(x.root.glob('*/*'))) == 2, x.root
+        assert len(_glob(x)) == 1, x.root
 
     for x in [b2, c1]:
-        assert len(list(x.root.glob('*/*'))) == 1, x.root
+        assert len(_glob(x)) == 0, x.root
+
+
+def _glob(location):
+    return list(set(location.root.glob('*/*')) - set((location.root / 'tools').glob('*')))

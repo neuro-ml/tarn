@@ -16,11 +16,11 @@ class UsageTracker(ABC):
         self.root = root
 
     @abstractmethod
-    def update(self, key: Key, path: Path):
+    def update(self, key: Key):
         """ Updates the usage time for a given `key` """
 
     @abstractmethod
-    def get(self, key: Key, path: Path) -> Optional[datetime]:
+    def get(self, key: Key) -> Optional[datetime]:
         """ Deletes the usage time for a given `key` """
 
     @abstractmethod
@@ -29,10 +29,10 @@ class UsageTracker(ABC):
 
 
 class DummyUsage(UsageTracker):
-    def update(self, key: Key, path: Path):
+    def update(self, key: Key):
         pass
 
-    def get(self, key: Key, path: Path) -> Optional[datetime]:
+    def get(self, key: Key) -> Optional[datetime]:
         return None
 
     def delete(self, key: Key):
@@ -40,10 +40,10 @@ class DummyUsage(UsageTracker):
 
 
 class StatUsage(UsageTracker):
-    def update(self, key: Key, path: Path):
+    def update(self, key: Key):
         mark = self._mark(key)
         missing = not mark.exists()
-        group = get_path_group(path)
+        group = get_path_group(self.root)
         create_folders(mark.parent, 0o777, group)
         mark.touch(exist_ok=True)
         if missing:
@@ -54,22 +54,9 @@ class StatUsage(UsageTracker):
         if mark.exists():
             remove_file(mark)
 
-    def get(self, key: Key, path: Path) -> Optional[datetime]:
+    def get(self, key: Key) -> Optional[datetime]:
         mark = self._mark(key)
         if mark.exists():
-            return datetime.fromtimestamp(mark.stat().st_mtime)
-        if path.exists():
-            # TODO: legacy
-            if path.is_dir():
-                if (path / '.time').exists():
-                    mark = path / '.time'
-                elif (path / 'data').exists():
-                    mark = path / 'data'
-                else:
-                    mark = path
-            else:
-                mark = path
-
             return datetime.fromtimestamp(mark.stat().st_mtime)
 
     def _mark(self, key):
