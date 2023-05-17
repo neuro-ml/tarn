@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Type
 
 from ..compat import HashAlgorithm
-from ..interface import Key, Keys, MaybeValue, Value
+from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels
 
 
 class Location(ABC):
@@ -20,7 +20,7 @@ class Location(ABC):
 
 class Writable(Location, ABC):
     @abstractmethod
-    def write(self, key: Key, value: Value) -> ContextManager[MaybeValue]:
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         pass
 
     @abstractmethod

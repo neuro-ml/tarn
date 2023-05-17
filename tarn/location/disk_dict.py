@@ -9,8 +9,9 @@ from ..compat import copy_file, remove_file, rmtree
 from ..config import load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import StorageCorruption
-from ..interface import Key, Keys, MaybeValue, PathOrStr, Value
+from ..interface import Key, Keys, MaybeValue, PathOrStr, Value, MaybeLabels
 from ..tools import Locker, SizeTracker, UsageTracker
+from ..tools.labels import LabelsStorage
 from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
 from .interface import Writable
 
@@ -28,12 +29,16 @@ class DiskDict(Writable):
 
         self.root = root
         self.permissions, self.group = root_params(self.root)
+        # TODO: create these folders only if needed
         usage_folder = self.root / 'tools/usage'
+        labels_folder = self.root / 'tools/labels'
         create_folders(usage_folder, self.permissions, self.group)
+        create_folders(labels_folder, self.permissions, self.group)
 
         self.locker: Locker = config.make_locker()
         self.size_tracker: SizeTracker = config.make_size()
         self.usage_tracker: UsageTracker = config.make_usage(usage_folder)
+        self.labels: LabelsStorage = config.make_labels(labels_folder)
         self.min_free_size = config.free_disk_size
         self.max_size = config.max_size
 
@@ -51,7 +56,7 @@ class DiskDict(Writable):
                 if file.is_dir():
                     file = file / 'data'
 
-                self.usage_tracker.update(key, file)
+                self.usage_tracker.update(key)
                 try:
                     yield file
                     return
@@ -70,7 +75,7 @@ class DiskDict(Writable):
                 yield key, value
 
     @contextmanager
-    def write(self, key: Key, value: Value) -> ContextManager[MaybePath]:
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         file = self._key_to_path(key)
         with self.locker.write(key):
             try:
@@ -82,6 +87,7 @@ class DiskDict(Writable):
 
                     _match(value, file, key)
                     yield file
+                    self.labels.update(key, labels)
                     return
 
                 # make sure we can write
@@ -117,7 +123,8 @@ class DiskDict(Writable):
 
                 # metadata
                 self.size_tracker.inc(get_size(file))
-                self.usage_tracker.update(key, file)
+                self.usage_tracker.update(key)
+                self.labels.update(key, labels)
 
                 yield file
 
@@ -142,6 +149,7 @@ class DiskDict(Writable):
 
             self.size_tracker.dec(size)
             self.usage_tracker.delete(key)
+            self.labels.delete(key)
 
             return True
 

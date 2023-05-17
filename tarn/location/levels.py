@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
-from ..interface import Key, Keys, MaybeValue, Value
+from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels
 from ..location import Location, Writable
 
 
@@ -52,12 +52,12 @@ class Levels(Writable):
         yield None
 
     @contextmanager
-    def write(self, key: Key, value: Value) -> ContextManager[MaybeValue]:
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         raised = False
         for config in self._levels:
             location = config.location
             if config.write and isinstance(location, Writable):
-                with location.write(key, value) as written:
+                with location.write(key, value, labels) as written:
                     if written is not None:
                         try:
                             yield written
@@ -103,7 +103,7 @@ class Levels(Writable):
         for config in islice(self._levels, index):
             location = config.location
             if config.replicate and isinstance(location, Writable):
-                with _propagate_exception(location.write(key, value)) as written:
+                with _propagate_exception(location.write(key, value, None)) as written:
                     if written is not None:
                         yield written
                         return

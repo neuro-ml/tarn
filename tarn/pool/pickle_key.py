@@ -8,7 +8,7 @@ from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
 from ..exceptions import ReadError, StorageCorruption, WriteError, DeserializationError
-from ..interface import Key, PathOrStr
+from ..interface import Key, PathOrStr, MaybeLabels
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
 from ..serializers import Serializer, SerializerError
@@ -28,7 +28,7 @@ class _PreparedKey(NamedTuple):
 
 class PickleKeyStorage:
     def __init__(self, index: LocationsLike, storage: Union[HashKeyStorage, LocationsLike], serializer: Serializer,
-                 algorithm: Type[HashAlgorithm] = None):
+                 algorithm: Optional[Type[HashAlgorithm]] = None):
         index = resolve_location(index)
         if not isinstance(storage, HashKeyStorage):
             storage = HashKeyStorage(storage)
@@ -61,7 +61,7 @@ class PickleKeyStorage:
             raise WriteError(f"The key {key.digest.hex()} couldn't be written to any storage")
         raise ReadError(f'Key {key.digest.hex()} is not found')
 
-    def write(self, key: ProxyKey, value: Any, *, error: bool = True) -> Optional[Key]:
+    def write(self, key: ProxyKey, value: Any, *, error: bool = True, labels: MaybeLabels = None) -> Optional[Key]:
         if not isinstance(key, _PreparedKey):
             key = self.prepare(key)
 
@@ -78,12 +78,12 @@ class PickleKeyStorage:
 
                 relative = str(file.relative_to(temp_folder))
                 assert relative not in mapping
-                mapping[relative] = self.storage.write(file).hex()
+                mapping[relative] = self.storage.write(file, labels=labels).hex()
 
         # we want a reproducible mapping each time
         mapping = {k: mapping[k] for k in sorted(mapping)}
         logger.info('Saving to index %s', digest)
-        with self.index.write(digest, BytesIO(json.dumps(mapping).encode())) as written:
+        with self.index.write(digest, BytesIO(json.dumps(mapping).encode()), labels=None) as written:
             if written is None:
                 if error:
                     raise WriteError('The index could not be written to any storage')

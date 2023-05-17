@@ -2,13 +2,14 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, BinaryIO, Callable, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, BinaryIO, Callable, Iterable, Optional, Sequence, Tuple, Union, Collection
 
 Key = bytes
 Keys = Sequence[Key]
 PathOrStr = Union[Path, str, os.PathLike]
 Value = Union[BinaryIO, PathOrStr]
 MaybeValue = Optional[Value]
+MaybeLabels = Optional[Collection[str]]
 
 logger = logging.getLogger(__name__)
 
