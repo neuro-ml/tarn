@@ -28,7 +28,7 @@ class _PreparedKey(NamedTuple):
 
 class PickleKeyStorage:
     def __init__(self, index: LocationsLike, storage: Union[HashKeyStorage, LocationsLike], serializer: Serializer,
-                 algorithm: Type[HashAlgorithm] = None):
+                 algorithm: Optional[Type[HashAlgorithm]] = None):
         index = resolve_location(index)
         if not isinstance(storage, HashKeyStorage):
             storage = HashKeyStorage(storage)

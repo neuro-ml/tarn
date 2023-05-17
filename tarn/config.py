@@ -97,7 +97,7 @@ class StorageConfig(_NoExtra):
     def to_size(cls, v):
         return parse_size(v)
 
-    @validator('hash', 'locker', 'usage', pre=True)
+    @validator('hash', 'locker', 'usage', 'labels', pre=True)
     def normalize_tools(cls, v):
         if isinstance(v, str):
             v = {'name': v}

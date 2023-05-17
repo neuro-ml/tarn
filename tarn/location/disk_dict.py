@@ -87,6 +87,7 @@ class DiskDict(Writable):
 
                     _match(value, file, key)
                     yield file
+                    self.labels.update(key, labels)
                     return
 
                 # make sure we can write
@@ -123,7 +124,7 @@ class DiskDict(Writable):
                 # metadata
                 self.size_tracker.inc(get_size(file))
                 self.usage_tracker.update(key)
-                self.labels.set(key, labels)
+                self.labels.update(key, labels)
 
                 yield file
 
@@ -148,7 +149,7 @@ class DiskDict(Writable):
 
             self.size_tracker.dec(size)
             self.usage_tracker.delete(key)
-            self.labels.set(key, None)
+            self.labels.delete(key)
 
             return True
 

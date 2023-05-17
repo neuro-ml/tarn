@@ -14,7 +14,7 @@ LocationsLike = Union[LocationLike, Sequence[LocationLike]]
 
 class HashKeyStorage:
     def __init__(self, local: LocationsLike, remote: LocationsLike = (), fetch: bool = True, error: bool = True,
-                 algorithm: Type[HashAlgorithm] = None):
+                 algorithm: Optional[Type[HashAlgorithm]] = None, labels: MaybeLabels = None):
         local = resolve_location(local)
         remote = resolve_location(remote)
         hashes = {location.hash for location in (local, remote) if location.hash is not None}
@@ -30,6 +30,7 @@ class HashKeyStorage:
         self._full = Levels(local, remote)
         self._error = error
         self._fetch = fetch
+        self.labels = labels
         self.algorithm = algorithm
         self.digest_size = algorithm().digest_size
 
@@ -62,6 +63,7 @@ class HashKeyStorage:
     # TODO: add support for buffers
     def write(self, value: PathOrStr, error: Optional[bool] = None, labels: MaybeLabels = None) -> Optional[Key]:
         error = self._resolve_value(error, self._error, 'error')
+        labels = self._resolve_value(labels, self.labels, None)
 
         digest = digest_value(value, self.algorithm)
         with self._local.write(digest, value, labels) as written:
@@ -77,7 +79,7 @@ class HashKeyStorage:
     def _resolve_value(current, preset, name):
         if current is None:
             current = preset
-        if current is None:
+        if current is None and name is not None:
             raise ValueError(f'Must provide a value for the "{name}" argument')
         return current
 
