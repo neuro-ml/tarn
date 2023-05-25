@@ -57,11 +57,12 @@ class GlobalThreadLocker(Locker):
 
 
 class RedisLocker(Locker):
-    def __init__(self, *args, prefix: AnyStr, expire: int):
+    def __init__(self, *args, prefix: AnyStr, expire: int, **kwargs):
         if len(args) == 1 and isinstance(args[0], Redis):
+            assert not kwargs, kwargs
             redis, = args
         else:
-            redis = Redis(*args)
+            redis = Redis(*args, **kwargs)
         if isinstance(prefix, str):
             prefix = prefix.encode()
 
@@ -152,6 +153,13 @@ class RedisLocker(Locker):
 
     def _start_reading(self, key: Key) -> bool:
         return bool(self._safe_eval(self._start_reading_script, 1, self._prefix + key))
+
+    @classmethod
+    def _from_args(cls, prefix, expire, kwargs):
+        return cls(prefix=prefix, expire=expire, **kwargs)
+
+    def __reduce__(self):
+        return self._from_args, (self._prefix[:-1], self._expire, self._redis.get_connection_kwargs())
 
 
 def wait_for_true(func, key, sleep_time, max_iterations):
