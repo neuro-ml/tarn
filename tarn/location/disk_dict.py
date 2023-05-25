@@ -1,6 +1,8 @@
 import logging
 import os
+import random
 import shutil
+import string
 from contextlib import contextmanager
 from pathlib import Path
 from typing import ContextManager, Iterable, Optional, Tuple
@@ -29,6 +31,9 @@ class DiskDict(Writable):
 
         self.root = root
         self.permissions, self.group = root_params(self.root)
+        self.tmp = root / '.tmp'
+        create_folders(self.tmp, self.permissions, self.group)
+
         # TODO: create these folders only if needed
         usage_folder = self.root / 'tools/usage'
         labels_folder = self.root / 'tools/labels'
@@ -95,31 +100,31 @@ class DiskDict(Writable):
                     yield
                     return
 
+                tmp = self.tmp / (key.hex() + ''.join(random.choices(string.ascii_lowercase, k=8)))
                 try:
                     # create base folders
                     create_folders(file.parent, self.permissions, self.group)
-                    # populate the folder
-                    # TODO: make this an atomic operation
-                    #  now this is just an ugly crutch
-                    try:
-                        if _is_pathlike(value):
-                            copy_file(value, file)
-                        else:
-                            with open(file, 'wb') as dst:
-                                shutil.copyfileobj(value, dst)
 
-                    except PermissionError:
-                        if not file.exists():
-                            raise
-                        _match(value, file, key)
-
+                    # write to a temp location
+                    if _is_pathlike(value):
+                        copy_file(value, tmp)
                     else:
-                        adjust_permissions(file, self.permissions, self.group, read_only=True)
+                        with open(tmp, 'wb') as dst:
+                            shutil.copyfileobj(value, dst)
+                    # permissions
+                    adjust_permissions(tmp, self.permissions, self.group, read_only=True)
+
+                    # move the file to the right location
+                    shutil.move(tmp, file)
 
                 except BaseException as e:
                     if file.exists():
                         remove_file(file)
                     raise RuntimeError('An error occurred while copying the file') from e
+
+                finally:
+                    if tmp.exists():
+                        remove_file(tmp)
 
                 # metadata
                 self.size_tracker.inc(get_size(file))

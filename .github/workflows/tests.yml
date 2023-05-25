@@ -4,6 +4,7 @@ on: [ pull_request ]
 
 env:
   MODULE_NAME: tarn
+  CI: true
 
 jobs:
   test-linux:

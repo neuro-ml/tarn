@@ -1,5 +1,9 @@
 import filecmp
+import io
 import platform
+import tempfile
+import time
+from multiprocessing import Process
 from pathlib import Path
 
 import pytest
@@ -97,6 +101,29 @@ def test_layers(temp_dir):
 
     for x in [b2, c1]:
         assert len(_glob(x)) == 0, x.root
+
+
+# FIXME: this test depends on the speed of the storage
+def test_process_kill(random_disk_dict):
+    def write():
+        d = DiskDict(root)
+        # 100 megabytes of garbage
+        with d.write(key, io.BytesIO(bytearray(total_size)), None):
+            pass
+
+    key = b'\x00' * sum(random_disk_dict.levels)
+    total_size = 100 * 1024 ** 2
+    root = random_disk_dict.root
+    raise ValueError(root)
+
+    # we start a process and kill it abruptly
+    p = Process(target=write)
+    p.start()
+    time.sleep(0.1)
+    p.kill()
+
+    with random_disk_dict.read(key) as result:
+        assert result is None, (result.stat().st_size, total_size)
 
 
 def _glob(location):
