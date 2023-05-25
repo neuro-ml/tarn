@@ -114,7 +114,6 @@ def test_process_kill(random_disk_dict):
     key = b'\x00' * sum(random_disk_dict.levels)
     total_size = 100 * 1024 ** 2
     root = random_disk_dict.root
-    raise ValueError(root)
 
     # we start a process and kill it abruptly
     p = Process(target=write)
