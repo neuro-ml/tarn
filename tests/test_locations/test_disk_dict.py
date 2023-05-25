@@ -114,7 +114,6 @@ def test_process_kill(random_disk_dict):
     time.sleep(0.1)
     # TODO: remove after py3.6 is dropped
     p.kill() if hasattr(p, 'kill') else p.terminate()
-    p.close()
 
     with random_disk_dict.read(key) as result:
         assert result is None, (result.stat().st_size, total_size)
