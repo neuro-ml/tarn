@@ -11,25 +11,29 @@ def load_text(path):
 
 
 STORAGE_ROOT = '/tmp/http'
-STORAGE_URL = 'http://localhost'
+
+
+@pytest.fixture
+def nginx_url(inside_ci):
+    return 'http://localhost' if inside_ci else 'http://localhost:8765'
 
 
 @pytest.mark.nginx
-def test_nginx_storage(storage_factory):
+def test_nginx_storage(storage_factory, nginx_url):
     with storage_factory() as local, storage_factory(root=STORAGE_ROOT, exist_ok=True) as remote:
         key = remote.write(__file__)
         with pytest.raises(ReadError):
             local.read(load_text, key)
 
-        both = HashKeyStorage(local._local, Nginx(STORAGE_URL))
+        both = HashKeyStorage(local._local, Nginx(nginx_url))
         assert both.read(load_text, key) == load_text(__file__)
         local.read(load_text, key)
 
 
 @pytest.mark.nginx
-def test_missing(storage_factory):
+def test_missing(storage_factory, nginx_url):
     with storage_factory(root=STORAGE_ROOT, exist_ok=True) as remote:
-        location = Nginx(STORAGE_URL)
+        location = Nginx(nginx_url)
         location._get_config()
 
         key = remote.write(__file__)

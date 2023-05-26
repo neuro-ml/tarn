@@ -40,8 +40,16 @@ class Nginx(Location):
             yield None
             return
 
-        with requests.get(urljoin(self.url, str(key_to_relative(key, self.levels))), stream=True) as request:
+        relative = key_to_relative(key, self.levels)
+        with requests.get(urljoin(self.url, str(relative)), stream=True) as request:
             if not request.ok:
+                # TODO: this is probably an old format directory
+                with requests.get(urljoin(self.url, str(relative / 'data')), stream=True) as req:
+                    if req.ok:
+                        with req.raw as raw:
+                            yield raw
+                            return
+
                 yield None
                 return
 

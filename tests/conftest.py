@@ -14,6 +14,11 @@ pytest_plugins = 'cache_fixtures',
 
 
 @pytest.fixture
+def inside_ci():
+    return 'CI' in os.environ
+
+
+@pytest.fixture
 def redis_hostname():
     return 'localhost'
 

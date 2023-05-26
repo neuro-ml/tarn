@@ -57,11 +57,12 @@ class GlobalThreadLocker(Locker):
 
 
 class RedisLocker(Locker):
-    def __init__(self, *args, prefix: AnyStr, expire: int):
+    def __init__(self, *args, prefix: AnyStr, expire: int, **kwargs):
         if len(args) == 1 and isinstance(args[0], Redis):
+            assert not kwargs, kwargs
             redis, = args
         else:
-            redis = Redis(*args)
+            redis = Redis(*args, **kwargs)
         if isinstance(prefix, str):
             prefix = prefix.encode()
 
@@ -84,9 +85,9 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            success = self._safe_eval(self._stop_reading_script, 1, self._prefix + key)
-        if not success:
-            raise RuntimeError('The locker is in a wrong state. Did it expire?')
+            lock = self._safe_eval(self._stop_reading_script, 1, self._prefix + key)
+        if lock != b'1':
+            raise RuntimeError(f'The locker is in a wrong state ({lock}). Did it expire?')
 
     @contextmanager
     def write(self, key: Key) -> ContextManager[None]:
@@ -97,21 +98,20 @@ class RedisLocker(Locker):
         try:
             yield
         finally:
-            success = self._safe_eval(self._stop_writing_script, 1, self._prefix + key)
-        if not success:
-            raise RuntimeError('The locker is in a wrong state. Did it expire?')
+            lock = self._safe_eval(self._stop_writing_script, 1, self._prefix + key)
+        if lock != b'-1':
+            raise RuntimeError(f'The locker is in a wrong state ({lock}). Did it expire?')
 
     def _update_scripts(self):
         expire = self._expire
         # TODO: how slow are these checks?
         # language=Lua
         self._stop_writing_script = self._redis.script_load('''
-        if redis.call('get', KEYS[1]) == '-1' then
+        local lock = redis.call('get', KEYS[1])
+        if lock == '-1' then
             redis.call('del', KEYS[1])
-            return 1
-        else
-            return 0
-        end''')
+        end
+        return lock''')
         # language=Lua
         self._start_reading_script = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
@@ -128,15 +128,15 @@ class RedisLocker(Locker):
         self._stop_reading_script = self._redis.script_load(f'''
         local lock = redis.call('get', KEYS[1])
         if lock == false then 
-            return 0
+            return lock
         elseif lock == '1' then
             redis.call('del', KEYS[1])
-            return 1
+            return lock
         elseif tonumber(lock) < 1 then
-            return 0
+            return lock
         else
             redis.call('set', KEYS[1], lock - 1, 'EX', {expire})
-            return 1
+            return '1'
         end''')
 
     def _safe_eval(self, *args):
@@ -153,6 +153,13 @@ class RedisLocker(Locker):
 
     def _start_reading(self, key: Key) -> bool:
         return bool(self._safe_eval(self._start_reading_script, 1, self._prefix + key))
+
+    @classmethod
+    def _from_args(cls, prefix, expire, kwargs):
+        return cls(prefix=prefix, expire=expire, **kwargs)
+
+    def __reduce__(self):
+        return self._from_args, (self._prefix[:-1], self._expire, self._redis.get_connection_kwargs())
 
 
 def wait_for_true(func, key, sleep_time, max_iterations):

@@ -2,7 +2,7 @@ import socket
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import ContextManager, Iterable, Sequence, Tuple, Union
+from typing import Any, ContextManager, Iterable, Sequence, Tuple, Union
 
 import paramiko
 from paramiko import AuthenticationException, SSHClient, SSHException
@@ -47,6 +47,9 @@ class SCP(Location):
         self.root = Path(root)
         self.ssh = ssh
         self.levels = self.hash = None
+
+    def __reduce__(self):
+        return self.__class__, (self.hostname, self.root, self.port, self.username, self.password, self.key)
 
     @property
     def key_size(self):
