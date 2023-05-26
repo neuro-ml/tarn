@@ -42,7 +42,7 @@ class Nginx(Location):
 
         relative = key_to_relative(key, self.levels)
         with requests.get(urljoin(self.url, str(relative)), stream=True) as request:
-            if not request.ok:
+            if request.status_code == 301:
                 # TODO: this is probably an old format directory
                 with requests.get(urljoin(self.url, str(relative / 'data')), stream=True) as req:
                     if req.ok:
@@ -50,6 +50,7 @@ class Nginx(Location):
                             yield raw
                             return
 
+            if not request.ok:
                 yield None
                 return
 
