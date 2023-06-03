@@ -102,9 +102,8 @@ class PickleKeyStorage:
                 # either the data is corrupted or missing
                 except (DeserializationError, ReadError) as e:
                     raise StorageCorruption from e
-
-                except SerializerError:
-                    raise
+                except SerializerError as e:
+                    raise SerializerError(f'Could not deserialize the data from key {digest.hex()}') from e
                 except Exception as e:
                     raise RuntimeError(f'An error occurred while loading the cache for "{digest.hex()}"') from e
 
