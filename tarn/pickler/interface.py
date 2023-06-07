@@ -59,12 +59,16 @@ class PortablePickler(Pickler):
 
         super().__init__(file, protocol=protocol)
         self.version = version
+        self._interning = {}
         self.dispatch_table = {
             types.CodeType: self.reduce_code,
             property: self.reduce_property,
         }
 
     def save(self, obj, *args, **kwargs):
+        if isinstance(obj, str):
+            obj = self._interning.setdefault(obj, obj)
+
         try:
             return super().save(obj, *args, **kwargs)
         except PickleError as e:

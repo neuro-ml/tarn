@@ -29,6 +29,8 @@ setup(
     packages=find_packages(include=(name,)),
     include_package_data=True,
     version=version,
+    author='Max',
+    author_email='max@ira-labs.com',
     description='A hashmap-based storage on local and remote disks',
     long_description=long_description,
     long_description_content_type='text/markdown',
