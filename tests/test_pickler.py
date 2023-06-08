@@ -104,6 +104,20 @@ def test_different_functions(version):
 
 
 @pytest.mark.parametrize('version', AVAILABLE_VERSIONS)
+def test_string_interning(version):
+    def f(x):
+        def g():
+            return x, 'test'
+
+        return g
+
+    dumper = partial(dumps, version=version)
+    # this test used to fail, because ` ''.join('test') is 'test' ` is implementation specific
+    #  due to optional string interning
+    assert dumper(f('test')) == dumper(f(''.join('test')))
+
+
+@pytest.mark.parametrize('version', AVAILABLE_VERSIONS)
 def test_class(version, pickle_references):
     dumper = partial(dumps, version=version)
 

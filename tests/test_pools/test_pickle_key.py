@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from tarn import PickleKeyStorage
-from tarn.serializers import JsonSerializer, DictSerializer
+from tarn.serializers import Serializer
 
 
 # TODO: reuse
@@ -10,6 +12,15 @@ def _mkdir(x):
 
 
 def test_index_write(temp_dir):
-    pool = PickleKeyStorage(_mkdir(temp_dir / 'index'), _mkdir(temp_dir / 'storage'), DictSerializer(JsonSerializer()))
-    pool.write(temp_dir, {'a': [1, 2, 3], 'b': [4, 5, 6]})
-    pool.write(temp_dir, {'b': [4, 5, 6], 'a': [1, 2, 3]})
+    pool = PickleKeyStorage(_mkdir(temp_dir / 'index'), _mkdir(temp_dir / 'storage'), DifferentOrder())
+    pool.write(temp_dir, 'ab')
+    pool.write(temp_dir, 'ba')
+
+
+class DifferentOrder(Serializer):
+    def save(self, value, folder: Path):
+        for k in value:
+            (folder / k).touch()
+
+    def load(self, folder: Path, storage):
+        pass

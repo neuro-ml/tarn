@@ -11,11 +11,32 @@ class Location(ABC):
 
     @abstractmethod
     def read(self, key: Key) -> ContextManager[MaybeValue]:
-        pass
+        """
+        Read a value for a given `key`. If the result is None - the key was not found.
+
+        Examples
+        --------
+        >>> with location.read(key) as result:
+        ...     if result is None:
+        ...        print('not found')
+        ...     else:
+        ...         with open(result) as file:
+        ...             print('found', file.read())
+        """
 
     @abstractmethod
     def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, MaybeValue]]:
-        pass
+        """
+        Reads multiple values given a collection of `keys`.
+
+        Examples
+        --------
+        >>> for key, result in location.read_batch(keys):
+        ...     if result is None:
+        ...        print(key, 'not found')
+        ...     else:
+        ...        print(key, 'found')
+        """
 
 
 class Writable(Location, ABC):

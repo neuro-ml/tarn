@@ -81,9 +81,8 @@ class PickleKeyStorage:
                 mapping[relative] = self.storage.write(file, labels=labels).hex()
 
         # we want a reproducible mapping each time
-        mapping = {k: mapping[k] for k in sorted(mapping)}
         logger.info('Saving to index %s', digest)
-        with self.index.write(digest, BytesIO(json.dumps(mapping).encode()), labels=None) as written:
+        with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()), labels=None) as written:
             if written is None:
                 if error:
                     raise WriteError('The index could not be written to any storage')
@@ -102,9 +101,8 @@ class PickleKeyStorage:
                 # either the data is corrupted or missing
                 except (DeserializationError, ReadError) as e:
                     raise StorageCorruption from e
-
-                except SerializerError:
-                    raise
+                except SerializerError as e:
+                    raise SerializerError(f'Could not deserialize the data from key {digest.hex()}') from e
                 except Exception as e:
                     raise RuntimeError(f'An error occurred while loading the cache for "{digest.hex()}"') from e
 

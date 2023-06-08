@@ -57,7 +57,7 @@ class ChainSerializer(Serializer):
 class JsonSerializer(Serializer):
     def save(self, value, folder: Path):
         try:
-            value = json.dumps(value)
+            value = json.dumps(value, sort_keys=True)
         except TypeError as e:
             raise SerializerError from e
 
@@ -180,7 +180,7 @@ class DictSerializer(Serializer):
             raise
 
         with open(folder / self.keys_filename, 'w+') as f:
-            json.dump(keys_to_folder, f)
+            json.dump(keys_to_folder, f, sort_keys=True)
 
     def load(self, folder: Path, storage: HashKeyStorage):
         keys = folder / self.keys_filename

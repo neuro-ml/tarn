@@ -7,7 +7,7 @@ requires-python = '>=3.6'
 license = { file = 'LICENSE' }
 keywords = ['storage', 'cache', 'invalidation']
 authors = [
-    { name = 'Max', email = 'maxs987@gmail.com' }
+    { name = 'Max', email = 'max@ira-labs.com' }
 ]
 classifiers = [
     'Development Status :: 3 - Alpha',
