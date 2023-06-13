@@ -5,8 +5,9 @@ from typing import ContextManager, Iterable, Tuple
 from botocore.exceptions import ClientError
 from mypy_boto3_s3 import ServiceResource
 
+from tarn.config import StorageConfig
+
 from .interface import Writable
-from ..config import load_config
 from ..digest import key_to_relative
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..tools.labels import LabelsStorage
@@ -14,12 +15,12 @@ from ..tools.labels import LabelsStorage
 
 class S3(Writable):
     def __init__(self, s3_resource: ServiceResource, bucket_name: str, root: PathOrStr):
-        root = Path(root)
-        config = load_config(root)
-        self.levels = config.levels
-        self.hash = config.hash.build()
+        self.root = Path(root)
         self.bucket = bucket_name
         self.s3 = s3_resource
+        config = self._load_config()
+        self.levels = config.levels
+        self.hash = config.hash.build()
         labels_folder = self.root / 'tools/labels'
         self.labels: LabelsStorage = config.make_labels(labels_folder)
 
@@ -32,7 +33,7 @@ class S3(Writable):
             s3_object_body = s3_response.get('Body')
             yield s3_object_body.read()
         except ClientError as e:
-            if e.response['Error']['Code'] == "404": # file doesn't exist
+            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey": # file doesn't exist
                 yield
                 return
             else:
@@ -42,6 +43,7 @@ class S3(Writable):
         for key in keys:
             yield key, self.read(key)
 
+    @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         file = self._key_to_path(key)
         try:
@@ -64,4 +66,18 @@ class S3(Writable):
         self.s3.Object(self.bucket, file)
 
     def _key_to_path(self, key: Key):
-        return self.root / key_to_relative(key, self.levels)
+        return str(self.root / key_to_relative(key, self.levels))
+
+    def _load_config(self):
+        try:
+            return StorageConfig.parse_raw(self.s3.Object(self.bucket, str(self.root / 'config.yml')).get()['Body'].read())
+        except ClientError as e:
+            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey": # file doesn't exist
+                return
+            else:
+                raise
+
+    @property
+    def key_size(self):
+        return sum(self.levels)
+    
