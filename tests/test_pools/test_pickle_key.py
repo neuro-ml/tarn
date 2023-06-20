@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from tarn import PickleKeyStorage
 from tarn.serializers import Serializer
 
@@ -18,9 +16,9 @@ def test_index_write(temp_dir):
 
 
 class DifferentOrder(Serializer):
-    def save(self, value):
+    def save(self, value, write):
         for v in value:
-            yield v, v.encode()
+            yield v, write(v.encode())
 
     def load(self, contents, read):
         pass

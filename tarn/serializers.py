@@ -13,7 +13,6 @@ from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Union
 import numpy as np
 
 from .digest import value_to_buffer
-from .interface import Value
 from .compat import BadGzipFile, SpooledTemporaryFile
 from .exceptions import SerializerError, DeserializationError
 
@@ -23,13 +22,13 @@ __all__ = (
     'NumpySerializer', 'JsonSerializer', 'PickleSerializer',
 )
 
-ContentsOut = Iterable[Tuple[str, Union[bytes, Value]]]
+ContentsOut = Iterable[Tuple[str, Any]]
 ContentsIn = Sequence[Tuple[str, Any]]
 
 
 class Serializer(ABC):
     @abstractmethod
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         """ Destructures the `value` into smaller parts that can be saved to disk """
 
     @abstractmethod
@@ -48,10 +47,10 @@ class ChainSerializer(Serializer):
     def __init__(self, *serializers: Serializer):
         self.serializers = serializers
 
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         for serializer in self.serializers:
             with suppress(SerializerError):
-                return serializer.save(value)
+                return list(serializer.save(value, write))
 
         raise SerializerError(f'No serializer was able to save the value of type {type(value).__name__!r}.')
 
@@ -76,9 +75,9 @@ class ChainSerializer(Serializer):
 
 
 class JsonSerializer(Serializer):
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         try:
-            yield 'value.json', json.dumps(value, sort_keys=True).encode()
+            yield 'value.json', write(json.dumps(value, sort_keys=True).encode())
         except TypeError as e:
             raise SerializerError from e
 
@@ -94,9 +93,9 @@ class JsonSerializer(Serializer):
 
 
 class PickleSerializer(Serializer):
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         try:
-            yield 'value.pkl', pickle.dumps(value)
+            yield 'value.pkl', write(pickle.dumps(value))
         except TypeError as e:
             raise SerializerError from e
 
@@ -128,7 +127,7 @@ class NumpySerializer(Serializer):
                 if np.issubdtype(value.dtype, dtype):
                     return self.compression[dtype]
 
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         if not isinstance(value, (np.ndarray, np.generic)):
             raise SerializerError
 
@@ -146,7 +145,7 @@ class NumpySerializer(Serializer):
                 name = 'value.npy'
 
             tmp.seek(0)
-            yield name, tmp
+            yield name, write(tmp)
 
     def load(self, contents: ContentsIn, read: Callable) -> Any:
         if len(contents) != 1:
@@ -175,17 +174,17 @@ class DictSerializer(Serializer):
         self.keys_filename = 'dict_keys.json'
         self.serializer = serializer
 
-    def save(self, value: Any) -> ContentsOut:
+    def save(self, value: Any, write: Callable) -> ContentsOut:
         if not isinstance(value, dict):
             raise SerializerError
 
         index_to_key = {}
         for index, key in enumerate(sorted(value)):
             index_to_key[str(index)] = key
-            for relative, part in self.serializer.save(value[key]):
+            for relative, part in self.serializer.save(value[key], write):
                 yield f'{index}/{relative}', part
 
-        yield self.keys_filename, json.dumps(index_to_key, sort_keys=True).encode()
+        yield self.keys_filename, write(json.dumps(index_to_key, sort_keys=True).encode())
 
     def load(self, contents: ContentsIn, read: Callable) -> Any:
         contents = dict(contents)

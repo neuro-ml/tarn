@@ -65,7 +65,7 @@ class PickleKeyStorage:
 
         digest = key.digest
         logger.info('Serializing %s', digest)
-        mapping = {k: self.storage.write(v, labels=labels).hex() for k, v in self.serializer.save(value)}
+        mapping = dict(self.serializer.save(value, lambda v: self.storage.write(v, labels=labels).hex()))
 
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
