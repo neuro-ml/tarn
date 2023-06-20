@@ -7,14 +7,14 @@ from abc import ABC, abstractmethod
 from contextlib import suppress
 from functools import partial
 from gzip import GzipFile
-from tempfile import SpooledTemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Union
 
 import numpy as np
 
 from .digest import value_to_buffer
 from .interface import Value
-from .compat import BadGzipFile
+from .compat import BadGzipFile, SpooledTemporaryFile
 from .exceptions import SerializerError, DeserializationError
 
 
