@@ -5,6 +5,7 @@ import shutil
 import stat
 from pathlib import Path
 from typing import Union
+from tempfile import SpooledTemporaryFile as _SpooledTemporaryFile
 
 try:
     from typing import Protocol
@@ -42,6 +43,13 @@ else:
 
     def get_path_group(path: PathOrStr) -> Union[int, None]:
         return Path(path).stat().st_gid
+
+if hasattr(_SpooledTemporaryFile, 'seekable'):
+    SpooledTemporaryFile = _SpooledTemporaryFile
+else:
+    class SpooledTemporaryFile(_SpooledTemporaryFile):
+        def seekable(self) -> bool:
+            return True
 
 
 def set_path_attrs(path: Path, permissions: Union[int, None] = None, group: Union[str, int, None] = None):

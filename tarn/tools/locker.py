@@ -78,7 +78,7 @@ class RedisLocker(Locker):
 
     @contextmanager
     def read(self, key: Key) -> ContextManager[None]:
-        sleep_time = 0.1
+        sleep_time = 0.01
         sleep_iters = int(self._expire / sleep_time) or 1
         wait_for_true(self._start_reading, key, sleep_time, sleep_iters)
 
@@ -91,7 +91,7 @@ class RedisLocker(Locker):
 
     @contextmanager
     def write(self, key: Key) -> ContextManager[None]:
-        sleep_time = 0.1
+        sleep_time = 0.01
         sleep_iters = int(self._expire / sleep_time) or 1
         wait_for_true(self._start_writing, key, sleep_time, sleep_iters)
 
