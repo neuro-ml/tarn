@@ -80,7 +80,7 @@ class S3(Writable):
 
     def _update_labels(self, file: str, labels: MaybeLabels):
         if labels is not None:
-            tags = [{'Key': label, 'Value': ''} for label in labels]
+            tags = [{'Key': label, 'Value': label} for label in labels]
             self.s3.put_object_tagging(Bucket=self.bucket, Key=file, Tagging={'TagSet': tags})
 
     @property
