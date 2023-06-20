@@ -99,12 +99,9 @@ def disk_cache_factory(storage_factory):
     @contextmanager
     def factory(serializer) -> Iterator[PickleKeyStorage]:
         with _safe_tmpdir() as root, storage_factory() as storage:
-            roots = []
             local = root / 'cache'
-            roots.append(local)
             init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
-
-            yield PickleKeyStorage(roots, storage, serializer)
+            yield PickleKeyStorage(local, storage, serializer)
 
     return factory
 

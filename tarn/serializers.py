@@ -1,35 +1,44 @@
+from collections import defaultdict
+import inspect
 import json
+from pathlib import Path
 import pickle
 from abc import ABC, abstractmethod
 from contextlib import suppress
 from functools import partial
 from gzip import GzipFile
-from pathlib import Path
-from typing import Callable, Dict, Union
+from tempfile import SpooledTemporaryFile, TemporaryDirectory
+from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Union
 
 import numpy as np
 
-from .compat import rmtree, BadGzipFile
+from .digest import value_to_buffer
+from .interface import Value
+from .compat import BadGzipFile
 from .exceptions import SerializerError, DeserializationError
-from .pool import HashKeyStorage
+
 
 __all__ = (
     'Serializer', 'SerializerError', 'ChainSerializer', 'DictSerializer',
     'NumpySerializer', 'JsonSerializer', 'PickleSerializer',
 )
 
+ContentsOut = Iterable[Tuple[str, Union[bytes, Value]]]
+ContentsIn = Sequence[Tuple[str, Any]]
+
 
 class Serializer(ABC):
     @abstractmethod
-    def save(self, value, folder: Path):
-        """ Saves the ``value`` to ``folder`` """
+    def save(self, value: Any) -> ContentsOut:
+        """ Destructures the `value` into smaller parts that can be saved to disk """
 
     @abstractmethod
-    def load(self, folder: Path, storage: HashKeyStorage):
-        """ Loads the value from ``folder`` """
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        """ Builds the object from its `contents` """
 
+    # TODO: legacy
     @staticmethod
-    def _load_file(storage: HashKeyStorage, loader: Callable, path: Path, *args, **kwargs):
+    def _load_file(storage, loader: Callable, path: Path, *args, **kwargs):
         """ Useful function for loading files from storage """
         with open(path, 'r') as key:
             return storage.read(loader, key.read(), *args, **kwargs)
@@ -39,75 +48,75 @@ class ChainSerializer(Serializer):
     def __init__(self, *serializers: Serializer):
         self.serializers = serializers
 
-    def save(self, value, folder: Path):
+    def save(self, value: Any) -> ContentsOut:
         for serializer in self.serializers:
             with suppress(SerializerError):
-                return serializer.save(value, folder)
+                return serializer.save(value)
 
-        raise SerializerError(f'No serializer was able to save to {folder}.')
+        raise SerializerError(f'No serializer was able to save the value of type {type(value).__name__!r}.')
 
-    def load(self, folder: Path, storage: HashKeyStorage):
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        contents = list(contents)
         for serializer in self.serializers:
             with suppress(SerializerError):
-                return serializer.load(folder, storage)
+                # TODO: old style
+                if list(inspect.signature(serializer.load).parameters)[0] == 'folder':
+                    with TemporaryDirectory() as folder:
+                        folder = Path(folder)
+                        for name, value in contents:
+                            (folder / name).parent.mkdir(parents=True, exist_ok=True)
+                            (folder / name).write_text(value.hex())
 
-        raise SerializerError(f'No serializer was able to load from {folder}.')
+                        storage = type('Storage', (), {'read': staticmethod(read)})
+                        return serializer.load(folder, storage)
+
+                return serializer.load(contents, read)
+
+        raise SerializerError(f'No serializer was able to load the contents {contents}.')
 
 
 class JsonSerializer(Serializer):
-    def save(self, value, folder: Path):
+    def save(self, value: Any) -> ContentsOut:
         try:
-            value = json.dumps(value, sort_keys=True)
+            yield 'value.json', json.dumps(value, sort_keys=True).encode()
         except TypeError as e:
             raise SerializerError from e
 
-        with open(folder / 'value.json', 'w') as file:
-            file.write(value)
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        if len(contents) != 1:
+            raise SerializerError
+        path, key = contents[0]
 
-    def load(self, folder: Path, storage: HashKeyStorage):
-        paths = list(folder.iterdir())
-        if len(paths) != 1:
+        if path != 'value.json':
             raise SerializerError
 
-        path, = paths
-        if path.name != 'value.json':
-            raise SerializerError
-
-        def loader(x):
-            with open(x, 'r') as file:
-                return json.load(file)
-
-        return self._load_file(storage, loader, folder / 'value.json')
+        return read(load_json, key)
 
 
 class PickleSerializer(Serializer):
-    def save(self, value, folder):
+    def save(self, value: Any) -> ContentsOut:
         try:
-            value = pickle.dumps(value)
+            yield 'value.pkl', pickle.dumps(value)
         except TypeError as e:
             raise SerializerError from e
 
-        with open(folder / 'value.pkl', 'wb') as file:
-            file.write(value)
-
-    def load(self, folder: Path, storage: HashKeyStorage):
-        paths = list(folder.iterdir())
-        if len(paths) != 1:
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        if len(contents) != 1:
             raise SerializerError
+        path, key = contents[0]
 
-        path, = paths
-        if path.name != 'value.pkl':
+        if path != 'value.pkl':
             raise SerializerError
 
         def loader(x):
-            with open(x, 'rb') as file:
-                return pickle.load(file)
+            with value_to_buffer(x) as buffer:
+                return pickle.load(buffer)
 
-        return self._load_file(storage, loader, folder / 'value.pkl')
+        return read(loader, key)
 
 
 class NumpySerializer(Serializer):
-    def __init__(self, compression: Union[int, Dict[type, int]] = None):
+    def __init__(self, compression: Union[int, Dict[type, int], None] = None):
         self.compression = compression
 
     def _choose_compression(self, value):
@@ -119,36 +128,42 @@ class NumpySerializer(Serializer):
                 if np.issubdtype(value.dtype, dtype):
                     return self.compression[dtype]
 
-    def save(self, value, folder: Path):
+    def save(self, value: Any) -> ContentsOut:
         if not isinstance(value, (np.ndarray, np.generic)):
             raise SerializerError
 
         compression = self._choose_compression(value)
-        if compression is not None:
-            assert isinstance(compression, int)
-            with GzipFile(folder / 'value.npy.gz', 'wb', compresslevel=compression, mtime=0) as file:
-                np.save(file, value, allow_pickle=False)
+        # TODO: 128MB for now. move to args
+        with SpooledTemporaryFile(max_size=128 * 1024 ** 2) as tmp:
+            if compression is not None:
+                assert isinstance(compression, int)
+                with GzipFile(fileobj=tmp, mode='wb', compresslevel=compression, mtime=0) as file:
+                    np.save(file, value, allow_pickle=False)
 
-        else:
-            np.save(folder / 'value.npy', value, allow_pickle=False)
+                name = 'value.npy.gz'
+            else:
+                np.save(tmp, value, allow_pickle=False)
+                name = 'value.npy'
 
-    def load(self, folder: Path, storage: HashKeyStorage):
-        paths = list(folder.iterdir())
-        if len(paths) != 1:
+            tmp.seek(0)
+            yield name, tmp
+
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        if len(contents) != 1:
             raise SerializerError
+        path, key = contents[0]
 
-        path, = paths
-        if path.name == 'value.npy':
+        if path == 'value.npy':
             loader = partial(np.load, allow_pickle=False)
-        elif path.name == 'value.npy.gz':
+        elif path == 'value.npy.gz':
             def loader(x):
-                with GzipFile(x, 'rb') as file:
+                with value_to_buffer(x) as buffer, GzipFile(fileobj=buffer, mode='rb') as file:
                     return np.load(file, allow_pickle=False)
         else:
             raise SerializerError
 
         try:
-            return self._load_file(storage, loader, path)
+            return read(loader, key)
         except (ValueError, EOFError) as e:
             raise DeserializationError from e
         except BadGzipFile as e:
@@ -160,39 +175,32 @@ class DictSerializer(Serializer):
         self.keys_filename = 'dict_keys.json'
         self.serializer = serializer
 
-    def save(self, data: dict, folder: Path):
-        if not isinstance(data, dict):
+    def save(self, value: Any) -> ContentsOut:
+        if not isinstance(value, dict):
             raise SerializerError
 
-        try:
-            keys_to_folder = {}
-            for index, key in enumerate(sorted(data)):
-                keys_to_folder[index] = key
-                sub_folder = folder / str(index)
-                sub_folder.mkdir()
-                self.serializer.save(data[key], sub_folder)
+        index_to_key = {}
+        for index, key in enumerate(sorted(value)):
+            index_to_key[str(index)] = key
+            for relative, part in self.serializer.save(value[key]):
+                yield f'{index}/{relative}', part
 
-        except SerializerError:
-            # remove the partially saved object
-            for sub_folder in folder.iterdir():
-                rmtree(sub_folder)
+        yield self.keys_filename, json.dumps(index_to_key, sort_keys=True).encode()
 
-            raise
-
-        with open(folder / self.keys_filename, 'w+') as f:
-            json.dump(keys_to_folder, f, sort_keys=True)
-
-    def load(self, folder: Path, storage: HashKeyStorage):
-        keys = folder / self.keys_filename
-        if not keys.exists():
+    def load(self, contents: ContentsIn, read: Callable) -> Any:
+        contents = dict(contents)
+        if self.keys_filename not in contents:
             raise SerializerError
 
-        def loader(x):
-            with open(x, 'r') as f:
-                return json.load(f)
+        index_to_key = read(load_json, contents.pop(self.keys_filename))
+        groups = defaultdict(list)
+        for key, value in contents.items():
+            index, relative = key.split('/', 1)
+            groups[index].append((relative, value))
 
-        keys_map = self._load_file(storage, loader, keys)
-        data = {}
-        for sub_folder, key in keys_map.items():
-            data[key] = self.serializer.load(folder / sub_folder, storage)
-        return data
+        return {key: self.serializer.load(groups[index], read) for index, key in index_to_key.items()}
+
+
+def load_json(x):
+    with value_to_buffer(x) as buffer:
+        return json.load(buffer)
