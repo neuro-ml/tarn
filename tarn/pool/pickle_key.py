@@ -78,7 +78,7 @@ class PickleKeyStorage:
         return digest
 
     def _read_for_digest(self, digest):
-        with self.index.read(digest) as index:
+        with self.index.read(digest, False) as index:
             if index is None:
                 return None, False
 

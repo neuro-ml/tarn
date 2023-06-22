@@ -1,7 +1,8 @@
 from contextlib import contextmanager
-from typing import ContextManager, Iterable, Tuple
+from typing import ContextManager, Iterable, Tuple, Union
 
-from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels
+from ..compat import Self
+from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels, Meta
 from .interface import Location, Writable
 
 
@@ -17,10 +18,10 @@ class Fanout(Writable):
         self.hash = hashes.pop() if hashes else None
 
     @contextmanager
-    def read(self, key: Key) -> ContextManager[MaybeValue]:
+    def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         raised = False
         for location in self._locations:
-            with location.read(key) as value:
+            with location.read(key, return_labels) as value:
                 if value is not None:
                     try:
                         yield value
@@ -78,3 +79,7 @@ class Fanout(Writable):
 
         for key in keys:
             yield key, None
+
+    def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
+        for location in self._locations:
+            yield from location.contents()
