@@ -4,7 +4,7 @@ import platform
 import shutil
 import stat
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 from tempfile import SpooledTemporaryFile as _SpooledTemporaryFile
 
 try:
@@ -15,6 +15,15 @@ try:
     from gzip import BadGzipFile
 except ImportError:
     BadGzipFile = OSError
+try:
+    from typing import Self
+except ImportError:
+    Self = Any
+
+try:
+    from mypy_boto3_s3 import S3Client
+except ImportError:
+    S3Client = Any
 
 from .interface import PathOrStr
 

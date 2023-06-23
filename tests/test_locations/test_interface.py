@@ -36,12 +36,12 @@ def test_errors_propagation(location):
 
     # existing key
     with pytest.raises(ZeroDivisionError):
-        with location.read(key):
+        with location.read(key, False):
             raise ZeroDivisionError
 
     # missing key
     with pytest.raises(ZeroDivisionError):
-        with location.read(b'1' * location.key_size):
+        with location.read(b'1' * location.key_size, False):
             raise ZeroDivisionError
 
 
@@ -51,11 +51,11 @@ def test_corrupted_read(location):
     with location.write(key, value, None):
         pass
 
-    with location.read(key) as result:
+    with location.read(key, False) as result:
         assert result.read_bytes() == value.read_bytes()
         raise StorageCorruption
 
-    with location.read(key) as result:
+    with location.read(key, False) as result:
         assert result is None
 
 
@@ -66,5 +66,5 @@ def test_corrupted_write(location):
         assert result.read_bytes() == value.read_bytes()
         raise StorageCorruption
 
-    with location.read(key) as result:
+    with location.read(key, False) as result:
         assert result is None
