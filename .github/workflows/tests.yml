@@ -41,7 +41,7 @@ jobs:
           - "8001:8001"
         volumes:
           - /minio-storage:/data
-        environment:
+        env:
           MINIO_ROOT_USER: "admin"
           MINIO_ROOT_PASSWORD: "adminadminadmin"
           MINIO_ADDRESS: ':8001'
