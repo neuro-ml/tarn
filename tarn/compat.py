@@ -20,6 +20,11 @@ try:
 except ImportError:
     Self = Any
 
+try:
+    from mypy_boto3_s3 import S3Client
+except ImportError:
+    S3Client = Any
+
 from .interface import PathOrStr
 
 if platform.system() == 'Windows':
