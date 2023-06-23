@@ -35,30 +35,30 @@ jobs:
         volumes:
           - /tmp:/tmp
       
-        minio:
-          image: minio/minio:latest
-          expose:
-            - 8001
-          ports:
-            - "8001:8001"
-          volumes:
-            - /minio-storage:/data
-          environment:
-            MINIO_ROOT_USER: "admin"
-            MINIO_ROOT_PASSWORD: "admin"
-            MINIO_ADDRESS: ':8001'
-          command: server /data
+      minio:
+        image: minio/minio:latest
+        expose:
+          - 8001
+        ports:
+          - "8001:8001"
+        volumes:
+          - /minio-storage:/data
+        environment:
+          MINIO_ROOT_USER: "admin"
+          MINIO_ROOT_PASSWORD: "adminadminadmin"
+          MINIO_ADDRESS: ':8001'
+        command: server /data
 
-        minio-mc:
-          image: minio/mc:RELEASE.2023-02-16T19-20-11Z  # latest version not working
-          depends_on:
-            - minio
-          entrypoint: >
-            /bin/sh -c "
-              mc alias set minio http://minio:8001 admin ${MINIO_ROOT_PASSWORD}
-              mc mb -p minio/storage
-              exit 0;
-            "
+      minio-mc:
+        image: minio/mc:RELEASE.2023-02-16T19-20-11Z  # latest version not working
+        depends_on:
+          - minio
+        entrypoint: >
+          /bin/sh -c "
+            mc alias set minio http://minio:8001 admin ${MINIO_ROOT_PASSWORD}
+            mc mb -p minio/storage
+            exit 0;
+          "
 
     steps:
       - uses: actions/checkout@v3
