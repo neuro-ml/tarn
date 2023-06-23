@@ -38,7 +38,7 @@ def test_missing(storage_factory, nginx_url):
 
         key = remote.write(__file__)
         missing = key[::-1]
-        for k, v in location.read_batch([key, missing]):
+        for k, (v, l) in location.read_batch([key, missing]):
             if k == key:
                 assert v is not None
                 with v as result:
