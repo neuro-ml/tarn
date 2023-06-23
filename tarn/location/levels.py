@@ -3,8 +3,9 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
-from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels
+from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels, Meta
 from ..location import Location, Writable
+from ..compat import Self
 
 
 class Level(NamedTuple):
@@ -30,17 +31,20 @@ class Levels(Writable):
         self.hash = hashes.pop() if hashes else None
 
     @contextmanager
-    def read(self, key: Key) -> ContextManager[MaybeValue]:
+    def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         # TODO: ExitStack?
         #  https://docs.python.org/3/library/contextlib.html#replacing-any-use-of-try-finally-and-flag-variables
         raised = False
         for index, config in enumerate(self._levels):
-            with config.location.read(key) as value:
+            with config.location.read(key, True) as value:
                 if value is not None:
                     # try to write to a level with higher priority
-                    with self._replicate(key, value, index) as mirrored:
+                    with self._replicate(key, *value, index) as (value_copy, labels_copy):
                         try:
-                            yield mirrored
+                            if return_labels:
+                                yield value_copy, labels_copy
+                            else:
+                                yield value_copy
                             return
                         except BaseException:
                             raised = True
@@ -80,7 +84,7 @@ class Levels(Writable):
 
         return deleted
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, MaybeValue]]:
+    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Tuple[Value, MaybeLabels]]]:
         for index, config in enumerate(self._levels):
             if not keys:
                 return
@@ -90,7 +94,7 @@ class Levels(Writable):
                 if value is None:
                     remaining.append(key)
                 else:
-                    with self._replicate(key, value, index) as mirrored:
+                    with self._replicate(key, *value, index) as mirrored:
                         yield key, mirrored
 
             keys = remaining
@@ -98,17 +102,21 @@ class Levels(Writable):
         for key in keys:
             yield key, None
 
+    def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
+        for level in self._levels:
+            yield from level.location.contents()
+
     @contextmanager
-    def _replicate(self, key: Key, value: Value, index: int):
+    def _replicate(self, key: Key, value: Value, labels: MaybeLabels, index: int):
         for config in islice(self._levels, index):
             location = config.location
             if config.replicate and isinstance(location, Writable):
-                with _propagate_exception(location.write(key, value, None)) as written:
+                with _propagate_exception(location.write(key, value, labels)) as written:
                     if written is not None:
-                        yield written
+                        yield written, labels
                         return
 
-        yield value
+        yield value, labels
 
 
 @contextmanager

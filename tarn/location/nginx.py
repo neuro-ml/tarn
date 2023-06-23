@@ -1,11 +1,13 @@
 from contextlib import contextmanager
-from typing import BinaryIO, ContextManager, Iterable, Optional
+from typing import BinaryIO, ContextManager, Iterable, Union, Tuple
 from urllib.parse import urljoin
 
 import requests
 
 from ..config import load_config_buffer
 from ..digest import key_to_relative
+from ..compat import Self
+from ..interface import MaybeLabels, Meta
 from .disk_dict import Key
 from .interface import Keys, Location, MaybeValue
 
@@ -24,18 +26,18 @@ class Nginx(Location):
 
     # TODO: use a session
 
-    def read_batch(self, keys: Keys) -> Iterable[ContextManager[MaybeValue]]:
+    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[None, Tuple[BinaryIO, MaybeLabels]]]]:
         self._get_config()
         for key in keys:
-            with self._read_single(key) as value:
+            with self._read_single(key, True) as value:
                 yield key, value
 
-    def read(self, key: Key) -> ContextManager[Optional[BinaryIO]]:
+    def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, BinaryIO, Tuple[BinaryIO, None]]]:
         self._get_config()
-        return self._read_single(key)
+        return self._read_single(key, return_labels)
 
     @contextmanager
-    def _read_single(self, key: Key) -> ContextManager[MaybeValue]:
+    def _read_single(self, key: Key, return_labels) -> ContextManager[MaybeValue]:
         if self.levels is None:
             yield None
             return
@@ -47,7 +49,10 @@ class Nginx(Location):
                 with requests.get(urljoin(self.url, str(relative / 'data')), stream=True) as req:
                     if req.ok:
                         with req.raw as raw:
-                            yield raw
+                            if return_labels:
+                                yield raw, None
+                            else:
+                                yield raw
                             return
 
             if not request.ok:
@@ -55,7 +60,14 @@ class Nginx(Location):
                 return
 
             with request.raw as raw:
-                yield raw
+                if return_labels:
+                    yield raw, None
+                else:
+                    yield raw
+
+    def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
+        # TODO
+        return []
 
     def _get_config(self):
         try:

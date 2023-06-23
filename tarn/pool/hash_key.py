@@ -53,7 +53,7 @@ class HashKeyStorage:
         if isinstance(key, str):
             key = bytes.fromhex(key)
         location = self._full if fetch else self._local
-        with location.read(key) as value:
+        with location.read(key, False) as value:
             if value is None and error:
                 raise ReadError(f'The key {key.hex()} is not found')
             yield value

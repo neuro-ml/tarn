@@ -32,7 +32,7 @@ def test_read_only(random_disk_dict):
             result.write_bytes(b'')
 
     # nor read
-    with location.read(key) as result:
+    with location.read(key, False) as result:
         assert result.read_bytes() == value.read_bytes()
 
         with pytest.raises(PermissionError):
@@ -111,11 +111,11 @@ def test_process_kill(random_disk_dict):
     # we start a process and kill it abruptly
     p = Process(target=_write, args=(root, key, total_size))
     p.start()
-    time.sleep(0.1)
+    time.sleep(0.01)
     # TODO: remove after py3.6 is dropped
     p.kill() if hasattr(p, 'kill') else p.terminate()
 
-    with random_disk_dict.read(key) as result:
+    with random_disk_dict.read(key, False) as result:
         assert result is None, (result.stat().st_size, total_size)
 
 
