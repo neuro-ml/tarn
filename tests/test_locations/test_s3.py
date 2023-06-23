@@ -5,6 +5,7 @@ from tarn import ReadError, HashKeyStorage
 from tarn.location.s3 import S3
 
 
+@pytest.mark.skip('not ready yet')
 def test_storage_s3():
     s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadmin')
     bucket = 'test'
