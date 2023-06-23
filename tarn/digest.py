@@ -1,7 +1,8 @@
+from io import BytesIO
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import AnyStr, Sequence, Type
+from typing import AnyStr, Sequence, Type, Union
 
 from .compat import HashAlgorithm
 from .interface import Value
@@ -11,8 +12,8 @@ def digest_file(path, algorithm, block_size=2 ** 20):
     return digest_value(path, algorithm, block_size).hex()
 
 
-def digest_value(value: Value, algorithm: Type[HashAlgorithm], block_size: int = 2 ** 20) -> bytes:
-    with _value_to_buffer(value) as buffer:
+def digest_value(value: Union[Value, bytes], algorithm: Type[HashAlgorithm], block_size: int = 2 ** 20) -> bytes:
+    with value_to_buffer(value) as buffer:
         hasher = algorithm()
         while True:
             chunk = buffer.read(block_size)
@@ -48,8 +49,11 @@ def get_digest_size(levels, string: bool):
 
 
 @contextmanager
-def _value_to_buffer(value: Value):
-    if isinstance(value, (str, os.PathLike)):
+def value_to_buffer(value: Union[Value, bytes]):
+    if isinstance(value, bytes):
+        yield BytesIO(value)
+
+    elif isinstance(value, (str, os.PathLike)):
         with open(value, 'rb') as file:
             yield file
 

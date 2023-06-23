@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import ContextManager, Iterable, Tuple
 
 from botocore.exceptions import ClientError
-from mypy_boto3_s3 import S3Client
+# from mypy_boto3_s3 import S3Client
 
 from .interface import Writable
 from ..config import StorageConfig
@@ -11,7 +11,7 @@ from ..interface import Key, Keys, MaybeLabels, MaybeValue, Value
 
 
 class S3(Writable):
-    def __init__(self, s3_client: S3Client, bucket_name: str):
+    def __init__(self, s3_client, bucket_name: str):
         self.bucket = bucket_name
         self.s3 = s3_client
         config = self._load_config()

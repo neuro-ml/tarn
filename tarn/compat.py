@@ -4,7 +4,8 @@ import platform
 import shutil
 import stat
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
+from tempfile import SpooledTemporaryFile as _SpooledTemporaryFile
 
 try:
     from typing import Protocol
@@ -14,6 +15,10 @@ try:
     from gzip import BadGzipFile
 except ImportError:
     BadGzipFile = OSError
+try:
+    from typing import Self
+except ImportError:
+    Self = Any
 
 from .interface import PathOrStr
 
@@ -42,6 +47,13 @@ else:
 
     def get_path_group(path: PathOrStr) -> Union[int, None]:
         return Path(path).stat().st_gid
+
+if hasattr(_SpooledTemporaryFile, 'seekable'):
+    SpooledTemporaryFile = _SpooledTemporaryFile
+else:
+    class SpooledTemporaryFile(_SpooledTemporaryFile):
+        def seekable(self) -> bool:
+            return True
 
 
 def set_path_attrs(path: Path, permissions: Union[int, None] = None, group: Union[str, int, None] = None):

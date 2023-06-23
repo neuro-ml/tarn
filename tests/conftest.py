@@ -89,7 +89,7 @@ def disk_dict_factory():
 
 
 @pytest.fixture
-def random_disk_dict(disk_dict_factory):
+def random_disk_dict(disk_dict_factory) -> DiskDict:
     with disk_dict_factory() as disk:
         yield disk
 
@@ -99,12 +99,9 @@ def disk_cache_factory(storage_factory):
     @contextmanager
     def factory(serializer) -> Iterator[PickleKeyStorage]:
         with _safe_tmpdir() as root, storage_factory() as storage:
-            roots = []
             local = root / 'cache'
-            roots.append(local)
             init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
-
-            yield PickleKeyStorage(roots, storage, serializer)
+            yield PickleKeyStorage(local, storage, serializer)
 
     return factory
 

@@ -1,11 +1,13 @@
+from io import BytesIO
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union, Collection
 
 from ..compat import HashAlgorithm
 from ..digest import digest_value
 from ..exceptions import ReadError, WriteError
-from ..interface import Key, Keys, MaybeValue, PathOrStr, MaybeLabels
+from ..interface import Key, Keys, MaybeValue, PathOrStr, MaybeLabels, Value
 from ..location import DiskDict, Fanout, Levels, Location
 
 LocationLike = Union[Location, PathOrStr]
@@ -51,7 +53,7 @@ class HashKeyStorage:
         if isinstance(key, str):
             key = bytes.fromhex(key)
         location = self._full if fetch else self._local
-        with location.read(key) as value:
+        with location.read(key, False) as value:
             if value is None and error:
                 raise ReadError(f'The key {key.hex()} is not found')
             yield value
@@ -60,12 +62,22 @@ class HashKeyStorage:
         with self._read_context(key, fetch, error) as value:
             return func(value, *args, **kwargs)
 
-    # TODO: add support for buffers
-    def write(self, value: PathOrStr, error: Optional[bool] = None, labels: MaybeLabels = None) -> Optional[Key]:
+    def write(self, value: Union[Value, bytes], error: Optional[bool] = None,
+              labels: MaybeLabels = None) -> Optional[Key]:
         error = self._resolve_value(error, self._error, 'error')
         labels = self._resolve_value(labels, self.labels, None)
 
-        digest = digest_value(value, self.algorithm)
+        if isinstance(value, (bytes, Path, str)):
+            digest = digest_value(value, self.algorithm)
+        else:
+            assert value.seekable(), value
+            position = value.tell()
+            digest = digest_value(value, self.algorithm)
+            value.seek(position)
+
+        if isinstance(value, bytes):
+            value = BytesIO(value)
+
         with self._local.write(digest, value, labels) as written:
             # TODO: check digest?
             if written is None:

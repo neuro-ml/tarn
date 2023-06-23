@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from tarn import PickleKeyStorage
 from tarn.serializers import Serializer
 
@@ -13,14 +11,14 @@ def _mkdir(x):
 
 def test_index_write(temp_dir):
     pool = PickleKeyStorage(_mkdir(temp_dir / 'index'), _mkdir(temp_dir / 'storage'), DifferentOrder())
-    pool.write(temp_dir, 'ab')
-    pool.write(temp_dir, 'ba')
+    pool.write(0, 'ab')
+    pool.write(0, 'ba')
 
 
 class DifferentOrder(Serializer):
-    def save(self, value, folder: Path):
-        for k in value:
-            (folder / k).touch()
+    def save(self, value, write):
+        for v in value:
+            yield v, write(v.encode())
 
-    def load(self, folder: Path, storage):
+    def load(self, contents, read):
         pass

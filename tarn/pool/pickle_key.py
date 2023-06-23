@@ -1,9 +1,7 @@
 import json
 import logging
-from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
@@ -67,18 +65,7 @@ class PickleKeyStorage:
 
         digest = key.digest
         logger.info('Serializing %s', digest)
-        mapping = {}
-        with TemporaryDirectory() as temp_folder:
-            temp_folder = Path(temp_folder)
-            self.serializer.save(value, temp_folder)
-
-            for file in temp_folder.glob('**/*'):
-                if file.is_dir():
-                    continue
-
-                relative = str(file.relative_to(temp_folder))
-                assert relative not in mapping
-                mapping[relative] = self.storage.write(file, labels=labels).hex()
+        mapping = dict(self.serializer.save(value, lambda v: self.storage.write(v, labels=labels).hex()))
 
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
@@ -91,20 +78,20 @@ class PickleKeyStorage:
         return digest
 
     def _read_for_digest(self, digest):
-        with self.index.read(digest) as index:
+        with self.index.read(digest, False) as index:
             if index is None:
                 return None, False
 
-            with _unpack_mapping(index) as folder:
-                try:
-                    return self.serializer.load(folder, self.storage), True
-                # either the data is corrupted or missing
-                except (DeserializationError, ReadError) as e:
-                    raise StorageCorruption from e
-                except SerializerError as e:
-                    raise SerializerError(f'Could not deserialize the data from key {digest.hex()}') from e
-                except Exception as e:
-                    raise RuntimeError(f'An error occurred while loading the cache for "{digest.hex()}"') from e
+            contents = list(_unpack_mapping(index))
+            try:
+                return self.serializer.load(contents, self.storage.read), True
+            # either the data is corrupted or missing
+            except (DeserializationError, ReadError) as e:
+                raise StorageCorruption from e
+            except SerializerError as e:
+                raise SerializerError(f'Could not deserialize the data from key {digest.hex()}') from e
+            except Exception as e:
+                raise RuntimeError(f'An error occurred while loading the cache for "{digest.hex()}"') from e
 
         return None, False
 
@@ -118,7 +105,7 @@ class PickleKeyStorage:
         # the cache is empty, but we can try and restore it from an older version
         for version in reversed(PREVIOUS_VERSIONS):
             _, local_digest = _key_to_digest(self.algorithm, key.raw, version)
-            value, exists = self._read_for_digest(digest)
+            value, exists = self._read_for_digest(local_digest)
             if exists:
                 logger.info('Key %s found in previous version (%d). Updating', digest, version)
                 # and store it for faster access next time
@@ -135,7 +122,6 @@ def _key_to_digest(algorithm, key, version=None):
     return pickled, digest
 
 
-@contextmanager
 def _unpack_mapping(path: Path):
     if path.is_file():
         with open(path, 'r') as file:
@@ -144,14 +130,14 @@ def _unpack_mapping(path: Path):
             except json.JSONDecodeError as e:
                 raise StorageCorruption from e
 
-        with TemporaryDirectory() as temp:
-            temp = Path(temp)
-            for relative, content in mapping.items():
-                (temp / relative).parent.mkdir(parents=True, exist_ok=True)
-                (temp / relative).write_text(content)
-
-            yield temp
+            for k, v in mapping.items():
+                yield k, bytes.fromhex(v)
 
     else:
         # TODO: warn
-        yield path
+        for file in path.glob('**/*'):
+            if file.is_dir():
+                continue
+
+            relative = str(file.relative_to(path))
+            yield relative, bytes.fromhex(file.read_text())
