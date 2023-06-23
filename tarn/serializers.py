@@ -55,6 +55,14 @@ class ChainSerializer(Serializer):
         raise SerializerError(f'No serializer was able to save the value of type {type(value).__name__!r}.')
 
     def load(self, contents: ContentsIn, read: Callable) -> Any:
+        # TODO: old style
+        if isinstance(contents, (str, Path)):
+            contents = [
+                (str(file.relative_to(contents)), bytes.fromhex(file.read_text())) 
+                for file in contents.glob('**/*') if not file.is_dir()
+            ]
+            read = read.read
+
         contents = list(contents)
         for serializer in self.serializers:
             with suppress(SerializerError):
