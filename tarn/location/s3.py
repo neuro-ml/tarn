@@ -23,15 +23,15 @@ class S3(Writable):
         for response in response_iterator:
             if 'Contents' in response:
                 for obj in response['Contents']:
-                    yield bytes(obj['Key']), self, None
+                    yield bytes.fromhex(obj['Key']), self, None
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         try:
-            s3_object = self.s3.get_object(Bucket=self.bucket, Key=str(key))
+            s3_object = self.s3.get_object(Bucket=self.bucket, Key=key.hex())
             s3_object_body = s3_object.get('Body')
             if return_labels:
-                yield StreamingBodyBuffer(s3_object_body), self._get_labels(str(key))
+                yield StreamingBodyBuffer(s3_object_body), self._get_labels(key.hex())
             else:
                 yield StreamingBodyBuffer(s3_object_body)
                 return
@@ -51,21 +51,21 @@ class S3(Writable):
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         with value_to_buffer(value) as value:
             try:
-                self.s3.get_object(Bucket=self.bucket, Key=str(key))
-                yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body'))
-                self._update_labels(str(key), labels)
+                self.s3.get_object(Bucket=self.bucket, Key=key.hex())
+                yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body'))
+                self._update_labels(key.hex(), labels)
                 return
             except ClientError as e:
                 if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
-                    self.s3.put_object(Bucket=self.bucket, Key=str(key), Body=value)
-                    yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body'))
-                    self._update_labels(str(key), labels)
+                    self.s3.put_object(Bucket=self.bucket, Key=key.hex(), Body=value)
+                    yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body'))
+                    self._update_labels(key.hex(), labels)
                     return
                 else:
                     raise
 
     def delete(self, key: Key):
-        self.s3.delete_object(Bucket=self.bucket, Key=str(key))
+        self.s3.delete_object(Bucket=self.bucket, Key=key.hex())
 
     def _update_labels(self, file: str, labels: MaybeLabels):
         if labels is not None:
