@@ -1,3 +1,4 @@
+from hashlib import blake2b
 import boto3
 import pytest
 
@@ -7,12 +8,14 @@ from tarn.location.s3 import S3
 
 @pytest.mark.skip('not ready yet')
 def test_storage_s3():
-    s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadmin')
+    s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354', aws_access_key_id='admin', aws_secret_access_key='3&fLjRA$FTYJr3Lk')
     bucket = 'test'
     location = S3(s3, bucket)
-    storage = HashKeyStorage(location)
+    storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(__file__, labels=('IRA', 'LABS'))
     file = storage.read(lambda x: x, key)
+    with location.write('123/456', b'123456', None) as v:
+        pass
     with location.read(key, return_labels=True) as content:
         assert content[1] == ['IRA', 'LABS']
     with pytest.raises(ReadError):

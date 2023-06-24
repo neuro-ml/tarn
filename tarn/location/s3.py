@@ -17,9 +17,8 @@ class S3(Writable):
     def __init__(self, s3_client: S3Client, bucket_name: str):
         self.bucket = bucket_name
         self.s3 = s3_client
-        config = self._load_config()
-        self.levels = config.levels if config is not None else None
-        self.hash = config.hash.build() if config is not None else None
+        self.hash = None
+        self.key_size = None
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
@@ -27,21 +26,16 @@ class S3(Writable):
         for response in response_iterator:
             if 'Contents' in response:
                 for obj in response['Contents']:
-                    if len(obj['Key'].split('/')) == len(self.levels):
-                        yield obj['Key'], self, None
+                    yield bytes(obj['Key']), self, None
     
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        if self.levels is None:
-            yield
-            return
-        file = self._key_to_path(key)
         try:
-            s3_object = self.s3.get_object(Bucket=self.bucket, Key=file)
+            s3_object = self.s3.get_object(Bucket=self.bucket, Key=str(key))
             s3_object_body = s3_object.get('Body')
             if return_labels:
-                yield s3_object_body, self._get_labels(file)
+                yield s3_object_body, self._get_labels(str(key))
             else:
                 yield s3_object_body
                 return
@@ -59,32 +53,22 @@ class S3(Writable):
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
-        if self.levels is None:
-            yield
-            return
-        file = self._key_to_path(key)
         try:
-            self.s3.get_object(Bucket=self.bucket, Key=file)
-            yield self.s3.get_object(Bucket=self.bucket, Key=file)
-            self._update_labels(file, labels)
+            self.s3.get_object(Bucket=self.bucket, Key=str(key))
+            yield self.s3.get_object(Bucket=self.bucket, Key=str(key))
+            self._update_labels(str(key), labels)
             return
         except ClientError as e:
             if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
-                self.s3.put_object(Bucket=self.bucket, Key=file, Body=value)
-                yield self.s3.get_object(Bucket=self.bucket, Key=file).get('Body')
-                self._update_labels(file, labels)
+                self.s3.put_object(Bucket=self.bucket, Key=str(key), Body=value)
+                yield self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body')
+                self._update_labels(str(key), labels)
                 return
             else:
                 raise
 
     def delete(self, key: Key):
-        if self.levels is None:
-            return
-        file = self._key_to_path(key)
-        self.s3.delete_object(Bucket=self.bucket, Key=file)
-
-    def _key_to_path(self, key: Key):
-        return str(key_to_relative(key, self.levels))
+        self.s3.delete_object(Bucket=self.bucket, Key=str(key))
 
     def _load_config(self):
         try:
@@ -103,8 +87,4 @@ class S3(Writable):
     def _get_labels(self, file: str) -> MaybeLabels:
         labels_dicts = self.s3.get_object_tagging(Bucket=self.bucket, Key=file)['TagSet']
         return [labels_dict['Key'] for labels_dict in labels_dicts]
-
-    @property
-    def key_size(self):
-        return sum(self.levels)
     
