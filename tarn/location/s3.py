@@ -66,15 +66,6 @@ class S3(Writable):
     def delete(self, key: Key):
         self.s3.delete_object(Bucket=self.bucket, Key=str(key))
 
-    def _load_config(self):
-        try:
-            return StorageConfig.parse_raw(self.s3.get_object(Bucket=self.bucket, Key='config.yml').get('Body').read())
-        except ClientError as e:
-            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
-                return
-            else:
-                raise
-
     def _update_labels(self, file: str, labels: MaybeLabels):
         if labels is not None:
             tags = [{'Key': label, 'Value': label} for label in labels]
