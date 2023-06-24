@@ -4,8 +4,8 @@ import platform
 import shutil
 import stat
 from pathlib import Path
-from typing import Union, Any
 from tempfile import SpooledTemporaryFile as _SpooledTemporaryFile
+from typing import Any, Union
 
 try:
     from typing import Protocol

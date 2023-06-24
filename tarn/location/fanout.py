@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import ContextManager, Iterable, Tuple, Union
 
 from ..compat import Self
-from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels, Meta
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from .interface import Location, Writable
 
 

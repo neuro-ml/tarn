@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
-from ..exceptions import ReadError, StorageCorruption, WriteError, DeserializationError
-from ..interface import Key, PathOrStr, MaybeLabels
+from ..exceptions import DeserializationError, ReadError, StorageCorruption, WriteError
+from ..interface import Key, MaybeLabels, PathOrStr
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
 from ..serializers import Serializer, SerializerError

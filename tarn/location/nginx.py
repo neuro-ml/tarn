@@ -1,12 +1,12 @@
 from contextlib import contextmanager
-from typing import BinaryIO, ContextManager, Iterable, Union, Tuple
+from typing import BinaryIO, ContextManager, Iterable, Tuple, Union
 from urllib.parse import urljoin
 
 import requests
 
+from ..compat import Self
 from ..config import load_config_buffer
 from ..digest import key_to_relative
-from ..compat import Self
 from ..interface import MaybeLabels, Meta
 from .disk_dict import Key
 from .interface import Keys, Location, MaybeValue

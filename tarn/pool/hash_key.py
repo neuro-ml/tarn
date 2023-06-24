@@ -1,13 +1,13 @@
-from io import BytesIO
 import os
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union, Collection
+from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from ..compat import HashAlgorithm
 from ..digest import digest_value
 from ..exceptions import ReadError, WriteError
-from ..interface import Key, Keys, MaybeValue, PathOrStr, MaybeLabels, Value
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..location import DiskDict, Fanout, Levels, Location
 
 LocationLike = Union[Location, PathOrStr]
