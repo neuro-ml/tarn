@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from ..compat import HashAlgorithm, Self
-from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels, Meta
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 
 
 class Location(ABC):

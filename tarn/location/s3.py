@@ -1,16 +1,13 @@
 from contextlib import contextmanager
-from typing import ContextManager, Iterable, Tuple, Union, Tuple, Any
+from typing import Any, ContextManager, Iterable, Tuple, Union
 
 from botocore.exceptions import ClientError
 
-from tarn.compat import Self
-from tarn.interface import Key, Meta
-
-from .interface import Writable
-from ..compat import S3Client
+from ..compat import S3Client, Self
 from ..config import StorageConfig
 from ..digest import key_to_relative
-from ..interface import Key, Keys, MaybeLabels, Value
+from ..interface import Key, Keys, MaybeLabels, Meta, Value
+from .interface import Writable
 
 
 class S3(Writable):
@@ -29,7 +26,6 @@ class S3(Writable):
                 for obj in response['Contents']:
                     if len(obj['Key'].split('/')) == len(self.levels):
                         yield obj['Key'], self, None
-    
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
@@ -46,7 +42,7 @@ class S3(Writable):
                 yield s3_object_body
                 return
         except ClientError as e:
-            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey": # file doesn't exist
+            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
                 yield
                 return
             else:
@@ -90,7 +86,7 @@ class S3(Writable):
         try:
             return StorageConfig.parse_raw(self.s3.get_object(Bucket=self.bucket, Key='config.yml').get('Body').read())
         except ClientError as e:
-            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey": # file doesn't exist
+            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
                 return
             else:
                 raise
@@ -107,4 +103,3 @@ class S3(Writable):
     @property
     def key_size(self):
         return sum(self.levels)
-    

@@ -8,15 +8,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import ContextManager, Iterable, Optional, Tuple, Union
 
-from ..compat import copy_file, remove_file, rmtree, Self
+from ..compat import Self, copy_file, remove_file, rmtree
 from ..config import load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import StorageCorruption
-from ..interface import Key, Keys, MaybeValue, PathOrStr, Value, MaybeLabels
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..tools import Locker, SizeTracker, UsageTracker
 from ..tools.labels import LabelsStorage
 from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
-from .interface import Writable, Meta
+from .interface import Meta, Writable
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]

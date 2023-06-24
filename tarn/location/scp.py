@@ -10,10 +10,10 @@ from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
-from ..compat import remove_file, rmtree, Self
+from ..compat import Self, remove_file, rmtree
 from ..config import load_config
 from ..digest import key_to_relative
-from ..interface import Key, Keys, PathOrStr, Value, MaybeLabels, Meta
+from ..interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
 from .interface import Location
 
 
