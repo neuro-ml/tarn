@@ -3,10 +3,9 @@ from typing import Any, ContextManager, Iterable, Tuple, Union
 
 from botocore.exceptions import ClientError
 
-from ..compat import S3Client, Self
-from ..config import StorageConfig
-from ..digest import key_to_relative
+from ..compat import S3Client
 from ..interface import Key, Keys, MaybeLabels, Meta, Value
+from ..utils import value_to_buffer
 from .interface import Writable
 
 
@@ -49,19 +48,20 @@ class S3(Writable):
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
-        try:
-            self.s3.get_object(Bucket=self.bucket, Key=str(key))
-            yield self.s3.get_object(Bucket=self.bucket, Key=str(key))
-            self._update_labels(str(key), labels)
-            return
-        except ClientError as e:
-            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
-                self.s3.put_object(Bucket=self.bucket, Key=str(key), Body=value)
-                yield self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body')
+        with value_to_buffer(value) as value:
+            try:
+                self.s3.get_object(Bucket=self.bucket, Key=str(key))
+                yield self.s3.get_object(Bucket=self.bucket, Key=str(key))
                 self._update_labels(str(key), labels)
                 return
-            else:
-                raise
+            except ClientError as e:
+                if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
+                    self.s3.put_object(Bucket=self.bucket, Key=str(key), Body=value)
+                    yield self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body')
+                    self._update_labels(str(key), labels)
+                    return
+                else:
+                    raise
 
     def delete(self, key: Key):
         self.s3.delete_object(Bucket=self.bucket, Key=str(key))
