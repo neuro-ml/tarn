@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -12,6 +13,11 @@ MaybeValue = Optional[Value]
 MaybeLabels = Optional[Collection[str]]
 
 logger = logging.getLogger(__name__)
+
+
+class Meta:
+    last_used: Optional[datetime.datetime]
+    labels: MaybeLabels
 
 
 class LocalStorage(ABC):

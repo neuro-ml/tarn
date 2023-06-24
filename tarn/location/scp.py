@@ -2,7 +2,7 @@ import socket
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, ContextManager, Iterable, Sequence, Tuple, Union
+from typing import ContextManager, Iterable, Sequence, Tuple, Union
 
 import paramiko
 from paramiko import AuthenticationException, SSHClient, SSHException
@@ -10,10 +10,10 @@ from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 from scp import SCPClient, SCPException
 
-from ..compat import remove_file, rmtree
+from ..compat import remove_file, rmtree, Self
 from ..config import load_config
 from ..digest import key_to_relative
-from ..interface import Key, Keys, MaybeValue, PathOrStr
+from ..interface import Key, Keys, PathOrStr, Value, MaybeLabels, Meta
 from .interface import Location
 
 
@@ -56,7 +56,7 @@ class SCP(Location):
         return sum(self.levels) if self.levels is not None else None
 
     @contextmanager
-    def read(self, key: Key) -> ContextManager[MaybeValue]:
+    def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         with self._connect() as scp:
             if not scp:
                 yield
@@ -71,17 +71,23 @@ class SCP(Location):
                     else:
                         # TODO: legacy
                         if source.is_dir():
-                            yield source / 'data'
+                            if return_labels:
+                                yield source / 'data', None
+                            else:
+                                yield source / 'data'
                             rmtree(source)
 
                         else:
-                            yield source
+                            if return_labels:
+                                yield source, None
+                            else:
+                                yield source
                             remove_file(source)
 
                 except (SCPException, socket.timeout, SSHException):
                     yield None
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, MaybeValue]]:
+    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[None, Tuple[Value, MaybeLabels]]]]:
         with self._connect() as scp:
             if scp is None:
                 for key in keys:
@@ -97,11 +103,11 @@ class SCP(Location):
                         if source.exists():
                             # TODO: legacy
                             if source.is_dir():
-                                yield key, source / 'data'
+                                yield key, (source / 'data', None)
                                 rmtree(source)
 
                             else:
-                                yield key, source
+                                yield key, (source, None)
                                 remove_file(source)
 
                         else:
@@ -109,6 +115,10 @@ class SCP(Location):
 
                     except (SCPException, socket.timeout, SSHException):
                         yield key, None
+
+    def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
+        # TODO
+        return []
 
     @contextmanager
     def _connect(self) -> SCPClient:
