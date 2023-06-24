@@ -1,5 +1,6 @@
 from contextlib import contextmanager
-from typing import Any, ContextManager, Iterable, Tuple, Union
+import json
+from typing import Any, BinaryIO, ContextManager, Iterable, Tuple, Union
 
 from botocore.exceptions import ClientError
 
@@ -30,9 +31,9 @@ class S3(Writable):
             s3_object = self.s3.get_object(Bucket=self.bucket, Key=str(key))
             s3_object_body = s3_object.get('Body')
             if return_labels:
-                yield s3_object_body, self._get_labels(str(key))
+                yield StreamingBodyBuffer(s3_object_body), self._get_labels(str(key))
             else:
-                yield s3_object_body
+                yield StreamingBodyBuffer(s3_object_body)
                 return
         except ClientError as e:
             if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
@@ -51,13 +52,13 @@ class S3(Writable):
         with value_to_buffer(value) as value:
             try:
                 self.s3.get_object(Bucket=self.bucket, Key=str(key))
-                yield self.s3.get_object(Bucket=self.bucket, Key=str(key))
+                yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body'))
                 self._update_labels(str(key), labels)
                 return
             except ClientError as e:
                 if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
                     self.s3.put_object(Bucket=self.bucket, Key=str(key), Body=value)
-                    yield self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body')
+                    yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=str(key)).get('Body'))
                     self._update_labels(str(key), labels)
                     return
                 else:
@@ -74,3 +75,13 @@ class S3(Writable):
     def _get_labels(self, file: str) -> MaybeLabels:
         labels_dicts = self.s3.get_object_tagging(Bucket=self.bucket, Key=file)['TagSet']
         return [labels_dict['Key'] for labels_dict in labels_dicts]
+
+
+class StreamingBodyBuffer(BinaryIO):
+    def __init__(self, streaming_body):
+        super().__init__()
+        self._streaming_body = streaming_body
+    
+    def __getattribute__(self, attr) -> Any:
+        streaming_body = super().__getattribute__('_streaming_body')
+        return getattr(streaming_body, attr)
