@@ -2,12 +2,12 @@ from io import BytesIO
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union, Collection
+from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from ..compat import HashAlgorithm
 from ..digest import digest_value
 from ..exceptions import ReadError, WriteError
-from ..interface import Key, Keys, MaybeValue, PathOrStr, MaybeLabels, Value
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..location import DiskDict, Fanout, Levels, Location
 
 LocationLike = Union[Location, PathOrStr]
@@ -53,7 +53,7 @@ class HashKeyStorage:
         if isinstance(key, str):
             key = bytes.fromhex(key)
         location = self._full if fetch else self._local
-        with location.read(key) as value:
+        with location.read(key, False) as value:
             if value is None and error:
                 raise ReadError(f'The key {key.hex()} is not found')
             yield value

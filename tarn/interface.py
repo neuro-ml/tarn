@@ -1,8 +1,9 @@
+import datetime
 import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, BinaryIO, Callable, Iterable, Optional, Sequence, Tuple, Union, Collection
+from typing import Any, BinaryIO, Callable, Collection, Iterable, Optional, Sequence, Tuple, Union
 
 Key = bytes
 Keys = Sequence[Key]
@@ -14,6 +15,12 @@ MaybeLabels = Optional[Collection[str]]
 logger = logging.getLogger(__name__)
 
 
+class Meta:
+    last_used: Optional[datetime.datetime]
+    labels: MaybeLabels
+
+
+# TODO: deprecated
 class LocalStorage(ABC):
     """
     Storage that has a well-defined location on the filesystem

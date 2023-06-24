@@ -1,25 +1,26 @@
-from collections import defaultdict
+
 import inspect
 import json
 from pathlib import Path
 import pickle
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from contextlib import suppress
 from functools import partial
 from gzip import GzipFile
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Union
 
 import numpy as np
 
-from .digest import value_to_buffer
 from .compat import BadGzipFile, SpooledTemporaryFile
-from .exceptions import SerializerError, DeserializationError
-
+from .digest import value_to_buffer
+from .exceptions import DeserializationError, SerializerError
 
 __all__ = (
-    'Serializer', 'SerializerError', 'ChainSerializer', 'DictSerializer',
-    'NumpySerializer', 'JsonSerializer', 'PickleSerializer',
+    'Serializer', 'SerializerError', 'ContentsIn', 'ContentsOut',
+    'ChainSerializer', 'DictSerializer', 'NumpySerializer', 'JsonSerializer', 'PickleSerializer',
 )
 
 ContentsOut = Iterable[Tuple[str, Any]]
@@ -58,7 +59,7 @@ class ChainSerializer(Serializer):
         # TODO: old style
         if isinstance(contents, (str, Path)):
             contents = [
-                (str(file.relative_to(contents)), bytes.fromhex(file.read_text())) 
+                (str(file.relative_to(contents)), bytes.fromhex(file.read_text()))
                 for file in contents.glob('**/*') if not file.is_dir()
             ]
             read = read.read

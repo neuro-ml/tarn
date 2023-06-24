@@ -1,9 +1,12 @@
 import filecmp
+import os
+from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO, Union
 
 from .compat import set_path_attrs
-from .interface import Key  # noqa
+from .interface import Key, Value  # noqa
 
 # TODO: legacy
 PathLike = Union[Path, str]
@@ -52,3 +55,16 @@ def match_buffers(first: BinaryIO, second: BinaryIO, context: str):
             raise ValueError(f'Buffers do not match: {context}')
         if not b1:
             return True
+
+
+@contextmanager
+def value_to_buffer(value: Union[Value, bytes]):
+    if isinstance(value, bytes):
+        yield BytesIO(value)
+
+    elif isinstance(value, (str, os.PathLike)):
+        with open(value, 'rb') as file:
+            yield file
+
+    else:
+        yield value

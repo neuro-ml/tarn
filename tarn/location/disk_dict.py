@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import random
@@ -5,17 +6,17 @@ import shutil
 import string
 from contextlib import contextmanager
 from pathlib import Path
-from typing import ContextManager, Iterable, Optional, Tuple
+from typing import ContextManager, Iterable, Optional, Tuple, Union
 
-from ..compat import copy_file, remove_file, rmtree
+from ..compat import Self, copy_file, remove_file, rmtree
 from ..config import load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import StorageCorruption
-from ..interface import Key, Keys, MaybeValue, PathOrStr, Value, MaybeLabels
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..tools import Locker, SizeTracker, UsageTracker
 from ..tools.labels import LabelsStorage
 from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
-from .interface import Writable
+from .interface import Meta, Writable
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]
@@ -51,8 +52,19 @@ class DiskDict(Writable):
     def key_size(self):
         return sum(self.levels)
 
+    def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
+        tools = self.root / 'tools'
+        config = self.root / 'config.yml'
+        for file in self.root.glob('/'.join('*' * len(self.levels))):
+            if file == config or file.is_relative_to(tools):
+                continue
+
+            key = bytes.fromhex(''.join(file.relative_to(self.root).parts))
+            with self.locker.read(key):
+                yield key, self, str(self.root)
+
     @contextmanager
-    def read(self, key: Key) -> ContextManager[MaybePath]:
+    def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         file = self._key_to_path(key)
         corrupted = False
         with self.locker.read(key):
@@ -63,7 +75,10 @@ class DiskDict(Writable):
 
                 self.usage_tracker.update(key)
                 try:
-                    yield file
+                    if return_labels:
+                        yield file, self.labels.get(key)
+                    else:
+                        yield file
                     return
                 except StorageCorruption:
                     corrupted = True
@@ -74,9 +89,9 @@ class DiskDict(Writable):
 
         yield None
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, MaybeValue]]:
+    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
         for key in keys:
-            with self.read(key) as value:
+            with self.read(key, True) as value:
                 yield key, value
 
     @contextmanager
@@ -171,6 +186,19 @@ class DiskDict(Writable):
             result = result and self.size_tracker.get(self.root) <= self.max_size
 
         return result
+
+
+class DiskDictMeta(Meta):
+    def __init__(self, key, usage, labels):
+        self._key, self._usage, self._labels = key, usage, labels
+
+    @property
+    def last_used(self) -> Optional[datetime.datetime]:
+        return self._usage.get(self._key)
+
+    @property
+    def labels(self) -> MaybeLabels:
+        return self._labels.get(self._key)
 
 
 def _is_pathlike(x):

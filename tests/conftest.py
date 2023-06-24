@@ -89,7 +89,7 @@ def disk_dict_factory():
 
 
 @pytest.fixture
-def random_disk_dict(disk_dict_factory):
+def random_disk_dict(disk_dict_factory) -> DiskDict:
     with disk_dict_factory() as disk:
         yield disk
 

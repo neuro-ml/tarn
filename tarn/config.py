@@ -10,7 +10,7 @@ from yaml import safe_dump, safe_load
 
 from .compat import get_path_group
 from .interface import PathOrStr
-from .tools import DummyLocker, DummySize, DummyUsage, Locker, SizeTracker, UsageTracker, LabelsStorage, DummyLabels
+from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
 
 CONFIG_NAME = 'config.yml'

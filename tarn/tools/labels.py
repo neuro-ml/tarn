@@ -2,9 +2,9 @@ import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from ..compat import remove_file, get_path_group, set_path_attrs
+from ..compat import get_path_group, remove_file, set_path_attrs
 from ..digest import key_to_relative
-from ..interface import MaybeLabels, Key
+from ..interface import Key, MaybeLabels
 
 __all__ = 'LabelsStorage', 'DummyLabels'
 
