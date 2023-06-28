@@ -1,12 +1,12 @@
-from contextlib import contextmanager
 import json
+from contextlib import contextmanager
 from typing import Any, BinaryIO, ContextManager, Iterable, Tuple, Union
 
 from botocore.exceptions import ClientError
 
 from ..compat import S3Client
 from ..interface import Key, Keys, MaybeLabels, Meta, Value
-from ..utils import value_to_buffer
+from ..utils import match_buffers, value_to_buffer
 from .interface import Writable
 
 
@@ -52,7 +52,9 @@ class S3(Writable):
         with value_to_buffer(value) as value:
             try:
                 self.s3.get_object(Bucket=self.bucket, Key=key.hex())
-                yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body'))
+                obj_body = self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body')
+                match_buffers(value, obj_body, context=key.hex())
+                yield StreamingBodyBuffer(obj_body)
                 self._update_labels(key.hex(), labels)
                 return
             except ClientError as e:
