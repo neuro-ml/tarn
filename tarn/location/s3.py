@@ -1,4 +1,3 @@
-import json
 from contextlib import contextmanager
 from typing import Any, BinaryIO, ContextManager, Iterable, Tuple, Union
 
@@ -54,7 +53,7 @@ class S3(Writable):
                 self.s3.get_object(Bucket=self.bucket, Key=key.hex())
                 obj_body = self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body')
                 match_buffers(value, obj_body, context=key.hex())
-                yield StreamingBodyBuffer(obj_body)
+                yield StreamingBodyBuffer(self.s3.get_object(Bucket=self.bucket, Key=key.hex()).get('Body'))
                 self._update_labels(key.hex(), labels)
                 return
             except ClientError as e:
