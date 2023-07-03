@@ -7,7 +7,7 @@ from tarn.location.s3 import S3
 
 
 @pytest.mark.s3
-def test_storage_s3(inside_ci, s3_client, bucket_name):
+def test_storage_s3(s3_client, bucket_name):
     location = S3(s3_client, bucket_name)
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(__file__, labels=('IRA', 'LABS'))
@@ -19,9 +19,12 @@ def test_storage_s3(inside_ci, s3_client, bucket_name):
         pass
     with location.read(key, return_labels=True) as content:
         assert sorted(content[1]) == sorted(['IRA', 'LABS', 'IRA1'])
+    with location.read(b'123/456', return_labels=False) as content:
+        assert content.read() == b'123456'
     with pytest.raises(ReadError):
         file = storage.read(lambda x: x, b'keke' * 8)
-    keys_amount = len(list(location.contents()))
+    contents = list(location.contents())
+    keys_amount = len(contents)
     location.delete(key)
     location.delete(b'123/456')
     location.delete(b'123/4567')

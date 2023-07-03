@@ -127,7 +127,7 @@ def bucket_name():
 def s3_client(bucket_name, inside_ci):
     if inside_ci:
         s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
+        s3.create_bucket(Bucket=bucket_name)
     else:
         s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
-    s3.create_bucket(Bucket=bucket_name)
     return s3
