@@ -31,9 +31,11 @@ class RedisLocation(Writable):
             return
         if return_labels:
             labels = self.get_labels(key)
-            yield value_to_buffer(content), labels
-            return
-        yield value_to_buffer(content)
+            with value_to_buffer(self.redis.get(content_key)) as buffer:
+                yield buffer, labels
+                return
+        with value_to_buffer(self.redis.get(content_key)) as buffer:
+            yield buffer
     
     def read_batch(self, keys: Keys) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
         for key in keys:
@@ -48,13 +50,15 @@ class RedisLocation(Writable):
             if content is None:
                 self.redis.set(content_key, value.read())
                 self.set_labels(key, labels)
-                yield value_to_buffer(self.redis.get(content_key))
-                return
+                with value_to_buffer(self.redis.get(content_key)) as buffer:
+                    yield buffer
+                    return
             old_content = self.redis.get(content_key)
             if old_content != value.read():
                 raise ValueError(f"Written value and the new one doesn't match: {key}")
             self.set_labels(key, labels)
-            yield value_to_buffer(self.redis.get(content_key))
+            with value_to_buffer(self.redis.get(content_key)) as buffer:
+                yield buffer
 
     def get_labels(self, key: Key) -> MaybeLabels:
         labels_key = f'labels{self.prefix}{key.hex()}'
