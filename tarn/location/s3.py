@@ -34,11 +34,11 @@ class S3(Writable):
         path = self._key_to_path(key)
         try:
             if return_labels:
+                self.update_usage_date(path)
                 yield self._get_buffer(path), self.get_labels(path)
-                self.update_usage_date(path)
             else:
-                yield self._get_buffer(path)
                 self.update_usage_date(path)
+                yield self._get_buffer(path)
 
         except ClientError as e:
             if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
