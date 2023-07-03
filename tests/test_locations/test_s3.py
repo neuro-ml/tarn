@@ -6,6 +6,7 @@ from tarn import HashKeyStorage, ReadError
 from tarn.location.s3 import S3
 
 
+@pytest.mark.s3
 def test_storage_s3(inside_ci, s3_client, bucket_name):
     location = S3(s3_client, bucket_name)
     storage = HashKeyStorage(location, algorithm=blake2b)
