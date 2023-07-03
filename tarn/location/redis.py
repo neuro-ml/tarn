@@ -1,6 +1,5 @@
 import json
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
 
 from redis import Redis
@@ -32,9 +31,9 @@ class RedisLocation(Writable):
             return
         if return_labels:
             labels = self.get_labels(key)
-            yield content, labels
+            yield value_to_buffer(content), labels
             return
-        yield content
+        yield value_to_buffer(content)
     
     def read_batch(self, keys: Keys) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
         for key in keys:
@@ -49,13 +48,13 @@ class RedisLocation(Writable):
             if content is None:
                 self.redis.set(content_key, value.read())
                 self.set_labels(key, labels)
-                yield self.redis.get(content_key)
+                yield value_to_buffer(self.redis.get(content_key))
                 return
             old_content = self.redis.get(content_key)
             if old_content != value.read():
                 raise ValueError(f"Written value and the new one doesn't match: {key}")
             self.set_labels(key, labels)
-            yield self.redis.get(content_key)
+            yield value_to_buffer(self.redis.get(content_key))
 
     def get_labels(self, key: Key) -> MaybeLabels:
         labels_key = f'labels{self.prefix}{key.hex()}'
