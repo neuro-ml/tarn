@@ -7,8 +7,9 @@ from tarn import HashKeyStorage, ReadError
 from tarn.location.redis import RedisLocation
 
 
-def test_storage_redis():
-    redis_instance = redis.Redis()
+@pytest.mark.redis
+def test_storage_redis(redis_hostname):
+    redis_instance = redis.Redis(redis_hostname)
     location = RedisLocation(redis_instance, prefix='_')
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(__file__, labels=('IRA', 'LABS'))
