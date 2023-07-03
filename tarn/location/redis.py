@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, ContextManager, Iterable, Optional, Tuple
+from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
 
 from redis import Redis
 
@@ -11,7 +11,9 @@ from .interface import Writable
 
 
 class RedisLocation(Writable):
-    def __init__(self, redis: Redis, prefix: str = ''):
+    def __init__(self, redis: Union[Redis, str], prefix: str = ''):
+        if isinstance(redis, str):
+            redis = Redis.from_url(redis)
         self.redis = redis
         self.prefix = prefix
         self.hash = None
