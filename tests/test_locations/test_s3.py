@@ -7,13 +7,8 @@ from tarn import HashKeyStorage, ReadError
 from tarn.location.s3 import S3
 
 
-def test_storage_s3(inside_ci):
-    if inside_ci:
-        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
-    else:
-        s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
-    bucket = 'test'
-    location = S3(s3, bucket)
+def test_storage_s3(inside_ci, s3_client, bucket_name):
+    location = S3(s3_client, bucket_name)
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(__file__, labels=('IRA', 'LABS'))
     key = storage.write(__file__, labels=('IRA', 'LABS', 'IRA1'))
