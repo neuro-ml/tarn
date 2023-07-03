@@ -21,7 +21,7 @@ def test_storage_s3(s3_client, bucket_name):
         assert sorted(content[1]) == sorted(['IRA', 'LABS', 'IRA1'])
     with location.read(b'123/456', return_labels=False) as content:
         assert content.read() == b'123456'
-    for k, v in location.read_batch((__file__, b'123/456')):
+    for k, v in location.read_batch((b'123/456',)):
         pass
     with pytest.raises(ReadError):
         file = storage.read(lambda x: x, b'keke' * 8)

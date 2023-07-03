@@ -21,7 +21,7 @@ def test_storage_redis(redis_hostname):
         assert v == b'123456'
     with location.read(key, return_labels=True) as content:
         assert sorted(content[1]) == sorted(['IRA', 'LABS', 'IRA1'])
-    for k, v in location.read_batch((__file__, b'123456')):
+    for k, v in location.read_batch((b'123456', )):
         pass
     with pytest.raises(ReadError):
         file = storage.read(lambda x: x, b'keke' * 8)
