@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+import boto3
 import pytest
 
 from tarn import DiskDict, PickleKeyStorage, Storage

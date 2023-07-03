@@ -1,6 +1,5 @@
 from hashlib import blake2b
 
-import boto3
 import pytest
 
 from tarn import HashKeyStorage, ReadError
