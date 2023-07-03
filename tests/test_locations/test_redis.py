@@ -7,7 +7,6 @@ from tarn import HashKeyStorage, ReadError
 from tarn.location.redis import RedisLocation
 
 
-@pytest.mark.skip('not ready yet')
 def test_storage_redis():
     redis_instance = redis.Redis()
     location = RedisLocation(redis_instance, prefix='_')
