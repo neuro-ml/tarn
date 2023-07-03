@@ -4,10 +4,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+import boto3
 import pytest
 
-from tarn import Storage, DiskDict, PickleKeyStorage
-from tarn.config import init_storage, StorageConfig
+from tarn import DiskDict, PickleKeyStorage, Storage
+from tarn.config import StorageConfig, init_storage
 from tarn.pool import HashKeyStorage
 
 pytest_plugins = 'cache_fixtures',
@@ -115,3 +116,18 @@ def _safe_tmpdir():
         tmp.cleanup()
     except PermissionError:
         pass
+
+
+@pytest.fixture
+def bucket_name():
+    return 'test'
+
+
+@pytest.fixture
+def s3_client(bucket_name, inside_ci):
+    if inside_ci:
+        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
+        s3.create_bucket(Bucket=bucket_name)
+    else:
+        s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
+    return s3

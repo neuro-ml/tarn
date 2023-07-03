@@ -13,7 +13,7 @@ jobs:
       OS: ubuntu
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10', '3.11' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11' ]
 
     services:
       redis:
@@ -103,7 +103,7 @@ jobs:
       OS: windows
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10', '3.11' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11' ]
 
     steps:
       - uses: actions/checkout@v3
@@ -123,7 +123,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest tests -m "not redis and not ssh and not nginx" --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
+          pytest tests -m "not redis and not ssh and not nginx and not s3" --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
