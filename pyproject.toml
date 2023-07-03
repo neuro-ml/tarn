@@ -3,12 +3,10 @@ name = 'tarn'
 dynamic = ['version', 'dependencies']
 description = 'A hashmap-based storage on local and remote disks'
 readme = 'README.md'
-requires-python = '>=3.6'
+requires-python = '>=3.7'
 license = { file = 'LICENSE' }
 keywords = ['storage', 'cache', 'invalidation']
-authors = [
-    { name = 'Max', email = 'max@ira-labs.com' }
-]
+authors = [{ name = 'Max', email = 'max@ira-labs.com' }]
 classifiers = [
     'Development Status :: 3 - Alpha',
     'License :: OSI Approved :: Apache Software License',
@@ -47,10 +45,7 @@ dependencies = { file = 'requirements.txt' }
 # B008: calling the function as default value is just part of the typer's interface
 # C408: for identifier-like fields dict(x=y) is just more concise
 ignore = ["W503", "E203", "B019", "B028", "C408"]
-per-file-ignores = [
-    "**/__init__.py:F401",
-    "tests/*:I251",
-]
+per-file-ignores = ["**/__init__.py:F401", "tests/*:I251"]
 max-line-length = 120
 banned-modules = "tarn.* = Use relative imports"
 
