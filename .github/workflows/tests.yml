@@ -83,6 +83,14 @@ jobs:
           sed -i -e "s|$MODULE_PARENT/||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
           sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}.xml
 
+      - name: Test older pydantic
+        run: |
+          pip install --upgrade "pydantic<2.0.0"
+          pytest tests --junitxml=reports/junit-${{ matrix.python-version }}-${OS}-pydantic1.xml --cov="$MODULE_PARENT/$MODULE_NAME" --cov-report=xml --cov-branch
+          coverage xml -o reports/coverage-${{ matrix.python-version }}-${OS}-pydantic1.xml
+          sed -i -e "s|$MODULE_PARENT/||g" reports/coverage-${{ matrix.python-version }}-${OS}-pydantic1.xml
+          sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}-pydantic1.xml
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:

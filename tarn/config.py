@@ -2,13 +2,13 @@ import hashlib
 import io
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import humanfriendly
-from pydantic import BaseModel, Extra, root_validator, validator
+from pydantic import BaseModel, Extra
 from yaml import safe_dump, safe_load
 
-from .compat import get_path_group
+from .compat import field_validator, get_path_group, model_validator
 from .interface import PathOrStr
 from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
@@ -25,17 +25,14 @@ class HashConfig(_NoExtra):
     name: str
     kwargs: Dict[str, Any] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def normalize_kwargs(cls, values):
-        alias = 'kwargs'
-        required = {field.alias for field in cls.__fields__.values() if field.alias != alias}
-
         kwargs = {}
         for field_name in list(values):
-            if field_name not in required:
+            if field_name not in ('name', 'kwargs'):
                 kwargs[field_name] = values.pop(field_name)
 
-        values[alias] = kwargs
+        values['kwargs'] = kwargs
         return values
 
     def dict(self, **kwargs):
@@ -54,9 +51,9 @@ class HashConfig(_NoExtra):
 class ToolConfig(_NoExtra):
     name: str
     args: Tuple = ()
-    kwargs: Dict[str, Any] = None
+    kwargs: Optional[Dict[str, Any]] = None
 
-    @validator('kwargs', always=True)
+    @field_validator('kwargs', always=True)
     def normalize_kwargs(cls, v):
         if v is None:
             return {}
@@ -66,13 +63,12 @@ class ToolConfig(_NoExtra):
 class StorageConfig(_NoExtra):
     hash: HashConfig
     levels: Sequence[int] = None
-    locker: ToolConfig = None
-    size: ToolConfig = None
-    usage: ToolConfig = None
-    labels: ToolConfig = None
+    locker: Optional[ToolConfig] = None
+    size: Optional[ToolConfig] = None
+    usage: Optional[ToolConfig] = None
+    labels: Optional[ToolConfig] = None
     free_disk_size: Union[int, str] = 0
-    max_size: Union[int, str] = None
-    version: str = None
+    max_size: Optional[Union[int, str]] = None
 
     @staticmethod
     def _make(base, dummy, config, *args):
@@ -93,17 +89,17 @@ class StorageConfig(_NoExtra):
     def make_labels(self, root: Path) -> LabelsStorage:
         return self._make(LabelsStorage, DummyLabels, self.labels, root)
 
-    @validator('free_disk_size', 'max_size')
+    @field_validator('free_disk_size', 'max_size')
     def to_size(cls, v):
         return parse_size(v)
 
-    @validator('hash', 'locker', 'usage', 'labels', pre=True)
+    @field_validator('hash', 'locker', 'usage', 'labels', mode='before')
     def normalize_tools(cls, v):
         if isinstance(v, str):
             v = {'name': v}
         return v
 
-    @validator('levels', always=True)
+    @field_validator('levels', always=True)
     def normalize_levels(cls, v, values):
         # default levels are [1, n - 1]
         if v is None:

@@ -1,6 +1,6 @@
-from io import BytesIO
 import os
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
 
