@@ -52,7 +52,7 @@ except ImportError:
     def field_validator(*args, mode: str = 'after', **kwargs):
         # we just ignore `always`
         assert mode in ('before', 'after')
-        if mode is 'before':
+        if mode == 'before':
             kwargs['pre'] = True
         return _field_validator(*args, **kwargs)
 
