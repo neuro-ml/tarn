@@ -6,7 +6,10 @@ readme = 'README.md'
 requires-python = '>=3.7'
 license = { file = 'LICENSE' }
 keywords = ['storage', 'cache', 'invalidation']
-authors = [{ name = 'Max', email = 'max@ira-labs.com' }]
+authors = [
+    { name = 'Max', email = 'max@ira-labs.com' },
+    { name = 'Talgat', email = 't.saparov@ira-labs.com' },
+]
 classifiers = [
     'Development Status :: 3 - Alpha',
     'License :: OSI Approved :: Apache Software License',
