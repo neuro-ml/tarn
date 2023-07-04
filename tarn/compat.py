@@ -32,7 +32,7 @@ except ImportError:
     S3Client = Any
 # we will try to support both versions 1 and 2 while they are more or less popular
 try:
-    from pydantic import field_validator as _field_validator, model_validator
+    from pydantic import field_validator as _field_validator, model_validator, BaseModel
 
 
     def field_validator(*args, always=None, **kwargs):
@@ -40,8 +40,22 @@ try:
         return _field_validator(*args, **kwargs)
 
 
+    def model_validate(cls, data):
+        return cls.model_validate(data)
+
+
+    def model_dump(obj):
+        return obj.model_dump()
+
+
+    class NoExtra(BaseModel):
+        model_config = {
+            'extra': 'forbid'
+        }
+
+
 except ImportError:
-    from pydantic import root_validator, validator as _field_validator
+    from pydantic import root_validator, validator as _field_validator, BaseModel
 
 
     def model_validator(mode: str):
@@ -55,6 +69,19 @@ except ImportError:
         if mode == 'before':
             kwargs['pre'] = True
         return _field_validator(*args, **kwargs)
+
+
+    def model_validate(cls, data):
+        return cls.parse_obj(data)
+
+
+    def model_dump(obj):
+        return obj.dict()
+
+
+    class NoExtra(BaseModel):
+        class Config:
+            extra = 'forbid'
 
 if platform.system() == 'Windows':
     def rmtree(path, ignore_errors=False):

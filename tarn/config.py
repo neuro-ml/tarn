@@ -5,10 +5,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import humanfriendly
-from pydantic import BaseModel, Extra
 from yaml import safe_dump, safe_load
 
-from .compat import field_validator, get_path_group, model_validator
+from .compat import field_validator, get_path_group, model_validator, model_validate, model_dump, NoExtra
 from .interface import PathOrStr
 from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
@@ -16,12 +15,7 @@ from .utils import mkdir
 CONFIG_NAME = 'config.yml'
 
 
-class _NoExtra(BaseModel):
-    class Config:
-        extra = Extra.forbid
-
-
-class HashConfig(_NoExtra):
+class HashConfig(NoExtra):
     name: str
     kwargs: Dict[str, Any] = None
 
@@ -34,6 +28,12 @@ class HashConfig(_NoExtra):
 
         values['kwargs'] = kwargs
         return values
+
+    def model_dump(self, **kwargs):
+        real = super().model_dump(**kwargs)
+        kwargs = real.pop('kwargs')
+        real.update(kwargs)
+        return real
 
     def dict(self, **kwargs):
         real = super().dict(**kwargs)
@@ -48,7 +48,7 @@ class HashConfig(_NoExtra):
         return cls
 
 
-class ToolConfig(_NoExtra):
+class ToolConfig(NoExtra):
     name: str
     args: Tuple = ()
     kwargs: Optional[Dict[str, Any]] = None
@@ -60,7 +60,7 @@ class ToolConfig(_NoExtra):
         return v
 
 
-class StorageConfig(_NoExtra):
+class StorageConfig(NoExtra):
     hash: HashConfig
     levels: Sequence[int] = None
     locker: Optional[ToolConfig] = None
@@ -113,12 +113,12 @@ def root_params(root: Path):
 
 
 def load_config_buffer(data: str) -> StorageConfig:
-    return StorageConfig.parse_obj(safe_load(io.StringIO(data)))
+    return model_validate(StorageConfig, safe_load(io.StringIO(data)))
 
 
 def load_config(root: PathOrStr) -> StorageConfig:
     with open(Path(root) / CONFIG_NAME) as file:
-        return StorageConfig.parse_obj(safe_load(file))
+        return model_validate(StorageConfig, safe_load(file))
 
 
 def parse_size(x):
@@ -144,4 +144,4 @@ def init_storage(config: StorageConfig, root: PathOrStr, *,
     mkdir(root, permissions, group, parents=True, exist_ok=exist_ok)
 
     with open(root / CONFIG_NAME, 'w') as file:
-        safe_dump(config.dict(), file)
+        safe_dump(model_dump(config), file)
