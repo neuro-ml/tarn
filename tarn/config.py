@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import humanfriendly
+from pydantic import Field
 from yaml import safe_dump, safe_load
 
 from .compat import field_validator, get_path_group, model_validator, model_validate, model_dump, NoExtra
@@ -62,7 +63,7 @@ class ToolConfig(NoExtra):
 
 class StorageConfig(NoExtra):
     hash: HashConfig
-    levels: Sequence[int] = None
+    levels: Optional[Sequence[int]] = Field(None, validate_default=True)
     locker: Optional[ToolConfig] = None
     size: Optional[ToolConfig] = None
     usage: Optional[ToolConfig] = None
@@ -102,6 +103,8 @@ class StorageConfig(NoExtra):
     @field_validator('levels', always=True)
     def normalize_levels(cls, v, values):
         # default levels are [1, n - 1]
+        if not isinstance(values, dict):
+            values = values.data
         if v is None:
             v = 1, values['hash'].build()().digest_size - 1
         return v

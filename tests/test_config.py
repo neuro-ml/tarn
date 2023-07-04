@@ -16,3 +16,7 @@ def test_config():
         StorageConfig(hash='sha256', levels=[1, 31], locker='1').make_locker()
 
     StorageConfig(hash='sha256', levels=[1, 31], locker='RedisLocker')
+
+
+def test_default_levels():
+    assert StorageConfig(hash='sha256').levels == (1, 31)
