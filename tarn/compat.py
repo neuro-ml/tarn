@@ -7,25 +7,81 @@ from pathlib import Path
 from tempfile import SpooledTemporaryFile as _SpooledTemporaryFile
 from typing import Any, Union
 
+from .interface import PathOrStr
+
+# patches for various versions
 try:
+    # >=3.8
     from typing import Protocol
 except ImportError:
     Protocol = object
 try:
+    # >=3.8
     from gzip import BadGzipFile
 except ImportError:
     BadGzipFile = OSError
 try:
+    # >=3.11
     from typing import Self
 except ImportError:
     Self = Any
-
 try:
+    # just a convenience lib for typing
     from mypy_boto3_s3 import S3Client
 except ImportError:
     S3Client = Any
+# we will try to support both versions 1 and 2 while they are more or less popular
+try:
+    from pydantic import field_validator as _field_validator, model_validator, BaseModel
 
-from .interface import PathOrStr
+
+    def field_validator(*args, always=None, **kwargs):
+        # we just ignore `always`
+        return _field_validator(*args, **kwargs)
+
+
+    def model_validate(cls, data):
+        return cls.model_validate(data)
+
+
+    def model_dump(obj):
+        return obj.model_dump()
+
+
+    class NoExtra(BaseModel):
+        model_config = {
+            'extra': 'forbid'
+        }
+
+
+except ImportError:
+    from pydantic import root_validator, validator as _field_validator, BaseModel
+
+
+    def model_validator(mode: str):
+        assert mode == 'before'
+        return root_validator(pre=True)
+
+
+    def field_validator(*args, mode: str = 'after', **kwargs):
+        # we just ignore `always`
+        assert mode in ('before', 'after')
+        if mode == 'before':
+            kwargs['pre'] = True
+        return _field_validator(*args, **kwargs)
+
+
+    def model_validate(cls, data):
+        return cls.parse_obj(data)
+
+
+    def model_dump(obj):
+        return obj.dict()
+
+
+    class NoExtra(BaseModel):
+        class Config:
+            extra = 'forbid'
 
 if platform.system() == 'Windows':
     def rmtree(path, ignore_errors=False):

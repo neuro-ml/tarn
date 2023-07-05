@@ -102,21 +102,33 @@ def test_layers(temp_dir):
         assert len(_glob(x)) == 0, x.root
 
 
-# FIXME: this test depends on the speed of the storage
 def test_process_kill(random_disk_dict):
     key = b'\x00' * sum(random_disk_dict.levels)
     total_size = 100 * 1024 ** 2
     root = random_disk_dict.root
 
-    # we start a process and kill it abruptly
-    p = Process(target=_write, args=(root, key, total_size))
-    p.start()
-    time.sleep(0.01)
-    # TODO: remove after py3.6 is dropped
-    p.kill() if hasattr(p, 'kill') else p.terminate()
+    results = []
+    # this process in non-deterministic, so we test for various sleep times
+    for sleep in [0.001, 0.01, 0.05, 0.1]:
+        # we start a process and kill it abruptly
+        p = Process(target=_write, args=(root, key, total_size))
+        p.start()
+        time.sleep(sleep)
+        # TODO: remove after py3.6 is dropped
+        p.kill() if hasattr(p, 'kill') else p.terminate()
 
-    with random_disk_dict.read(key, False) as result:
-        assert result is None, (result.stat().st_size, total_size)
+        with random_disk_dict.read(key, False) as result:
+            if result is None:
+                results.append(True)
+            else:
+                # if the file exists it shouldn't be corrupted
+                assert result.stat().st_size == total_size
+                results.append(False)
+
+        random_disk_dict.delete(key)
+
+    # at least one write should fail, otherwise we test for nothing
+    assert any(results)
 
 
 def _glob(location):

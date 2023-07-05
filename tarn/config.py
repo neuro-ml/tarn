@@ -2,13 +2,13 @@ import hashlib
 import io
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import humanfriendly
-from pydantic import BaseModel, Extra, root_validator, validator
+from pydantic import Field
 from yaml import safe_dump, safe_load
 
-from .compat import get_path_group
+from .compat import field_validator, get_path_group, model_validator, model_validate, model_dump, NoExtra
 from .interface import PathOrStr
 from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
@@ -16,27 +16,25 @@ from .utils import mkdir
 CONFIG_NAME = 'config.yml'
 
 
-class _NoExtra(BaseModel):
-    class Config:
-        extra = Extra.forbid
-
-
-class HashConfig(_NoExtra):
+class HashConfig(NoExtra):
     name: str
     kwargs: Dict[str, Any] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def normalize_kwargs(cls, values):
-        alias = 'kwargs'
-        required = {field.alias for field in cls.__fields__.values() if field.alias != alias}
-
         kwargs = {}
         for field_name in list(values):
-            if field_name not in required:
+            if field_name not in ('name', 'kwargs'):
                 kwargs[field_name] = values.pop(field_name)
 
-        values[alias] = kwargs
+        values['kwargs'] = kwargs
         return values
+
+    def model_dump(self, **kwargs):
+        real = super().model_dump(**kwargs)
+        kwargs = real.pop('kwargs')
+        real.update(kwargs)
+        return real
 
     def dict(self, **kwargs):
         real = super().dict(**kwargs)
@@ -51,28 +49,27 @@ class HashConfig(_NoExtra):
         return cls
 
 
-class ToolConfig(_NoExtra):
+class ToolConfig(NoExtra):
     name: str
     args: Tuple = ()
-    kwargs: Dict[str, Any] = None
+    kwargs: Optional[Dict[str, Any]] = None
 
-    @validator('kwargs', always=True)
+    @field_validator('kwargs', always=True)
     def normalize_kwargs(cls, v):
         if v is None:
             return {}
         return v
 
 
-class StorageConfig(_NoExtra):
+class StorageConfig(NoExtra):
     hash: HashConfig
-    levels: Sequence[int] = None
-    locker: ToolConfig = None
-    size: ToolConfig = None
-    usage: ToolConfig = None
-    labels: ToolConfig = None
+    levels: Optional[Sequence[int]] = Field(None, validate_default=True)
+    locker: Optional[ToolConfig] = None
+    size: Optional[ToolConfig] = None
+    usage: Optional[ToolConfig] = None
+    labels: Optional[ToolConfig] = None
     free_disk_size: Union[int, str] = 0
-    max_size: Union[int, str] = None
-    version: str = None
+    max_size: Optional[Union[int, str]] = None
 
     @staticmethod
     def _make(base, dummy, config, *args):
@@ -93,19 +90,21 @@ class StorageConfig(_NoExtra):
     def make_labels(self, root: Path) -> LabelsStorage:
         return self._make(LabelsStorage, DummyLabels, self.labels, root)
 
-    @validator('free_disk_size', 'max_size')
+    @field_validator('free_disk_size', 'max_size')
     def to_size(cls, v):
         return parse_size(v)
 
-    @validator('hash', 'locker', 'usage', 'labels', pre=True)
+    @field_validator('hash', 'locker', 'usage', 'labels', mode='before')
     def normalize_tools(cls, v):
         if isinstance(v, str):
             v = {'name': v}
         return v
 
-    @validator('levels', always=True)
+    @field_validator('levels', always=True)
     def normalize_levels(cls, v, values):
         # default levels are [1, n - 1]
+        if not isinstance(values, dict):
+            values = values.data
         if v is None:
             v = 1, values['hash'].build()().digest_size - 1
         return v
@@ -117,12 +116,12 @@ def root_params(root: Path):
 
 
 def load_config_buffer(data: str) -> StorageConfig:
-    return StorageConfig.parse_obj(safe_load(io.StringIO(data)))
+    return model_validate(StorageConfig, safe_load(io.StringIO(data)))
 
 
 def load_config(root: PathOrStr) -> StorageConfig:
     with open(Path(root) / CONFIG_NAME) as file:
-        return StorageConfig.parse_obj(safe_load(file))
+        return model_validate(StorageConfig, safe_load(file))
 
 
 def parse_size(x):
@@ -148,4 +147,4 @@ def init_storage(config: StorageConfig, root: PathOrStr, *,
     mkdir(root, permissions, group, parents=True, exist_ok=exist_ok)
 
     with open(root / CONFIG_NAME, 'w') as file:
-        safe_dump(config.dict(), file)
+        safe_dump(model_dump(config), file)
