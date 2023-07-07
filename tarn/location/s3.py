@@ -67,8 +67,8 @@ class S3(Writable):
                     obj_body = self.s3.get_object(Bucket=self.bucket, Key=path).get('Body')
                     try:
                         match_buffers(value, obj_body, context=key.hex())
-                    except ValueError:
-                        raise CollisionError(f"Written value and the new one doesn't match: {key}")
+                    except ValueError as e:
+                        raise CollisionError(f"Written value and the new one doesn't match: {key}") from e
                     self.update_labels(path, labels)
                     self.update_usage_date(path)
                     yield self._get_buffer(path)

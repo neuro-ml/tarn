@@ -212,6 +212,5 @@ def _match(value, file, key):
         else:
             with open(file, 'rb') as dst:
                 match_buffers(value, dst, context=key.hex())
-    except ValueError:
-        raise CollisionError(f"Written value and the new one doesn't match: {key}")
-
+    except ValueError as e:
+        raise CollisionError(f"Written value and the new one doesn't match: {key}") from e

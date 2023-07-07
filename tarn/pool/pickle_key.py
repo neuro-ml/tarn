@@ -77,9 +77,9 @@ class PickleKeyStorage:
                     if error:
                         raise WriteError('The index could not be written to any storage')
                     return None
-        except CollisionError:
+        except CollisionError as e:
             with self.index.read(digest, return_labels=False) as v:
-                raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}')
+                raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}') from e
         return digest
 
     def _read_for_digest(self, digest):
