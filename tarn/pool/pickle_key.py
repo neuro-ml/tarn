@@ -1,12 +1,12 @@
 import json
 import logging
-from io import BytesIO
 import os
+from io import BytesIO
 from pathlib import Path
 from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
-from ..exceptions import DeserializationError, ReadError, StorageCorruption, WriteError
+from ..exceptions import CollisionError, DeserializationError, ReadError, StorageCorruption, WriteError
 from ..interface import Key, MaybeLabels, PathOrStr, Value
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
@@ -71,12 +71,15 @@ class PickleKeyStorage:
 
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
-        with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()), labels=None) as written:
-            if written is None:
-                if error:
-                    raise WriteError('The index could not be written to any storage')
-                return None
-
+        try:
+            with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()), labels=None) as written:
+                if written is None:
+                    if error:
+                        raise WriteError('The index could not be written to any storage')
+                    return None
+        except CollisionError:
+            with self.index.read(digest, return_labels=False) as v:
+                raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}')
         return digest
 
     def _read_for_digest(self, digest):
