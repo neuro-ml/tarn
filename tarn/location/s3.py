@@ -5,8 +5,11 @@ from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, T
 
 from botocore.exceptions import ClientError
 
+from tarn.exceptions import CollisionError
+
 from ..compat import S3Client
 from ..digest import key_to_relative, value_to_buffer
+from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, Keys, MaybeLabels, Meta, Value
 from ..utils import match_buffers
 from .interface import Writable
@@ -31,20 +34,23 @@ class S3(Writable):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        path = self._key_to_path(key)
         try:
-            if return_labels:
-                self.update_usage_date(path)
-                yield self._get_buffer(path), self.get_labels(path)
-            else:
-                self.update_usage_date(path)
-                yield self._get_buffer(path)
+            path = self._key_to_path(key)
+            try:
+                if return_labels:
+                    self.update_usage_date(path)
+                    yield self._get_buffer(path), self.get_labels(path)
+                else:
+                    self.update_usage_date(path)
+                    yield self._get_buffer(path)
 
-        except ClientError as e:
-            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
-                yield
-            else:
-                raise
+            except ClientError as e:
+                if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":  # file doesn't exist
+                    yield
+                else:
+                    raise
+        except StorageCorruption:
+            self.delete(key)
 
     def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
         for key in keys:
@@ -53,25 +59,31 @@ class S3(Writable):
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
-        path = self._key_to_path(key)
-        with value_to_buffer(value) as value:
-            try:
-                self.s3.get_object(Bucket=self.bucket, Key=path)
-                obj_body = self.s3.get_object(Bucket=self.bucket, Key=path).get('Body')
-                match_buffers(value, obj_body, context=key.hex())
-                self.update_labels(path, labels)
-                self.update_usage_date(path)
-                yield self._get_buffer(path)
-                return
-            except ClientError as e:
-                if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
-                    self.s3.upload_fileobj(Bucket=self.bucket, Key=path, Fileobj=value)
+        try:
+            path = self._key_to_path(key)
+            with value_to_buffer(value) as value:
+                try:
+                    self.s3.get_object(Bucket=self.bucket, Key=path)
+                    obj_body = self.s3.get_object(Bucket=self.bucket, Key=path).get('Body')
+                    try:
+                        match_buffers(value, obj_body, context=key.hex())
+                    except ValueError:
+                        raise CollisionError(f"Written value and the new one doesn't match: {key}")
                     self.update_labels(path, labels)
                     self.update_usage_date(path)
                     yield self._get_buffer(path)
                     return
-                else:
-                    raise
+                except ClientError as e:
+                    if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == "NoSuchKey":
+                        self.s3.upload_fileobj(Bucket=self.bucket, Key=path, Fileobj=value)
+                        self.update_labels(path, labels)
+                        self.update_usage_date(path)
+                        yield self._get_buffer(path)
+                        return
+                    else:
+                        raise
+        except StorageCorruption:
+            self.delete(key)
 
     def delete(self, key: Key):
         path = self._key_to_path(key)

@@ -6,6 +6,7 @@ from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
 from redis import Redis
 
 from ..digest import value_to_buffer
+from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, Keys, MaybeLabels, Meta, Value
 from .interface import Writable
 
@@ -26,19 +27,22 @@ class RedisLocation(Writable):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager:
-        content_key = self.prefix + key
-        content = self.redis.get(content_key)
-        if content is None:
-            yield
-            return
-        self.update_usage_date(key)
-        if return_labels:
-            labels = self.get_labels(key)
-            with value_to_buffer(self.redis.get(content_key)) as buffer:
-                yield buffer, labels
+        try:
+            content_key = self.prefix + key
+            content = self.redis.get(content_key)
+            if content is None:
+                yield
                 return
-        with value_to_buffer(self.redis.get(content_key)) as buffer:
-            yield buffer
+            self.update_usage_date(key)
+            if return_labels:
+                labels = self.get_labels(key)
+                with value_to_buffer(self.redis.get(content_key)) as buffer:
+                    yield buffer, labels
+                    return
+            with value_to_buffer(self.redis.get(content_key)) as buffer:
+                yield buffer
+        except StorageCorruption:
+            self.delete(key)
     
     def read_batch(self, keys: Keys) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
         for key in keys:
@@ -47,23 +51,26 @@ class RedisLocation(Writable):
                 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
-        content_key = self.prefix + key
-        with value_to_buffer(value) as value:
-            content = self.redis.get(content_key)
-            if content is None:
-                self.redis.set(content_key, value.read())
+        try:
+            content_key = self.prefix + key
+            with value_to_buffer(value) as value:
+                content = self.redis.get(content_key)
+                if content is None:
+                    self.redis.set(content_key, value.read())
+                    self.update_labels(key, labels)
+                    self.update_usage_date(key)
+                    with value_to_buffer(self.redis.get(content_key)) as buffer:
+                        yield buffer
+                        return
+                old_content = self.redis.get(content_key)
+                if old_content != value.read():
+                    raise CollisionError(f"Written value and the new one doesn't match: {key}")
                 self.update_labels(key, labels)
                 self.update_usage_date(key)
                 with value_to_buffer(self.redis.get(content_key)) as buffer:
                     yield buffer
-                    return
-            old_content = self.redis.get(content_key)
-            if old_content != value.read():
-                raise ValueError(f"Written value and the new one doesn't match: {key}")
-            self.update_labels(key, labels)
-            self.update_usage_date(key)
-            with value_to_buffer(self.redis.get(content_key)) as buffer:
-                yield buffer
+        except StorageCorruption:
+            self.delete(key)
 
     def get_labels(self, key: Key) -> MaybeLabels:
         labels_key = b'labels' + self.prefix + key
