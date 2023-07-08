@@ -3,9 +3,9 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
-from ..interface import Key, Keys, MaybeValue, Value, MaybeLabels, Meta
-from ..location import Location, Writable
 from ..compat import Self
+from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
+from ..location import Location, Writable
 
 
 class Level(NamedTuple):

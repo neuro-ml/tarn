@@ -1,15 +1,17 @@
 import json
 import logging
 from io import BytesIO
+import os
 from pathlib import Path
 from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
-from ..exceptions import ReadError, StorageCorruption, WriteError, DeserializationError
-from ..interface import Key, PathOrStr, MaybeLabels
+from ..exceptions import DeserializationError, ReadError, StorageCorruption, WriteError
+from ..interface import Key, MaybeLabels, PathOrStr, Value
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
 from ..serializers import Serializer, SerializerError
+from ..utils import value_to_buffer
 from .hash_key import HashKeyStorage, LocationsLike, resolve_location
 
 logger = logging.getLogger(__name__)
@@ -122,22 +124,24 @@ def _key_to_digest(algorithm, key, version=None):
     return pickled, digest
 
 
-def _unpack_mapping(path: Path):
-    if path.is_file():
-        with open(path, 'r') as file:
+def _unpack_mapping(value: Value):
+    if isinstance(value, (str, os.PathLike)):
+        value = Path(value)
+    # TODO: legacy
+    if isinstance(value, Path) and not value.is_file():
+        for file in value.glob('**/*'):
+            if file.is_dir():
+                continue
+
+            relative = str(file.relative_to(value))
+            yield relative, bytes.fromhex(file.read_text())
+
+    else:
+        with value_to_buffer(value) as buffer:
             try:
-                mapping = json.load(file)
+                mapping = json.load(buffer)
             except json.JSONDecodeError as e:
                 raise StorageCorruption from e
 
             for k, v in mapping.items():
                 yield k, bytes.fromhex(v)
-
-    else:
-        # TODO: warn
-        for file in path.glob('**/*'):
-            if file.is_dir():
-                continue
-
-            relative = str(file.relative_to(path))
-            yield relative, bytes.fromhex(file.read_text())
