@@ -11,7 +11,7 @@ from typing import ContextManager, Iterable, Optional, Tuple, Union
 from ..compat import Self, copy_file, remove_file, rmtree
 from ..config import load_config, root_params
 from ..digest import key_to_relative
-from ..exceptions import StorageCorruption
+from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..tools import Locker, SizeTracker, UsageTracker
 from ..tools.labels import LabelsStorage
@@ -206,8 +206,11 @@ def _is_pathlike(x):
 
 
 def _match(value, file, key):
-    if _is_pathlike(value):
-        match_files(value, file)
-    else:
-        with open(file, 'rb') as dst:
-            match_buffers(value, dst, context=key.hex())
+    try:
+        if _is_pathlike(value):
+            match_files(value, file)
+        else:
+            with open(file, 'rb') as dst:
+                match_buffers(value, dst, context=key.hex())
+    except ValueError as e:
+        raise CollisionError(f"Written value and the new one doesn't match: {key}") from e
