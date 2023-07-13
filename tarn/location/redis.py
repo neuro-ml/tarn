@@ -43,12 +43,14 @@ class RedisLocation(Writable):
                 yield buffer
         except StorageCorruption:
             self.delete(key)
-    
-    def read_batch(self, keys: Keys) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
+
+    def read_batch(
+        self, keys: Keys
+    ) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
         for key in keys:
             with self.read(key, True) as value:
                 yield key, value
-                
+
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         try:
@@ -64,7 +66,9 @@ class RedisLocation(Writable):
                         return
                 old_content = self.redis.get(content_key)
                 if old_content != value.read():
-                    raise CollisionError(f"Written value and the new one doesn't match: {key}")
+                    raise CollisionError(
+                        f'Written value and the new one does not match: {key}'
+                    )
                 self.update_labels(key, labels)
                 self.update_usage_date(key)
                 with value_to_buffer(self.redis.get(content_key)) as buffer:

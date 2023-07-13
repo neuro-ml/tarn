@@ -43,7 +43,7 @@ class HashKeyStorage:
     def read(self, func_or_key, *args, fetch: Optional[bool] = None, error: Optional[bool] = None, **kwargs):
         if callable(func_or_key):
             return self._read_func(func_or_key, *args, error=error, fetch=fetch, **kwargs)
-        return self._read_context(func_or_key, *args, **kwargs)
+        return self._read_context(func_or_key, fetch, error, *args, **kwargs)
 
     @contextmanager
     def _read_context(self, key, fetch, error) -> ContextManager[MaybeValue]:
