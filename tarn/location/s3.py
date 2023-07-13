@@ -1,16 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 from io import SEEK_CUR, SEEK_END, SEEK_SET
-from typing import (
-    Any,
-    BinaryIO,
-    ContextManager,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
 
 from botocore.exceptions import ClientError, ConnectionError
 
@@ -191,7 +182,7 @@ class StreamingBodyBuffer(BinaryIO):
             if offset == 0:
                 return
 
-        raise NotImplementedError('Can't seek anywhere but the begining of the stream')
+        raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
 
     def __getattribute__(self, attr) -> Any:
         if attr in ('seek', 'getter', 'kwargs'):
