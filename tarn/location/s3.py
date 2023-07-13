@@ -82,7 +82,7 @@ class S3(Writable):
                         match_buffers(value, obj_body_buffer, context=key.hex())
                     except ValueError as e:
                         raise CollisionError(
-                            f'Written value and the new one doesn't match: {key}'
+                            f'Written value and the new one does not match: {key}'
                         ) from e
                     self.update_labels(path, labels)
                     self.update_usage_date(path)

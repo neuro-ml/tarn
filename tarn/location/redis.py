@@ -67,7 +67,7 @@ class RedisLocation(Writable):
                 old_content = self.redis.get(content_key)
                 if old_content != value.read():
                     raise CollisionError(
-                        f'Written value and the new one doesn't match: {key}'
+                        f'Written value and the new one does not match: {key}'
                     )
                 self.update_labels(key, labels)
                 self.update_usage_date(key)
