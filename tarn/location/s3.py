@@ -77,7 +77,7 @@ class S3(Writable):
                         ) from e
                     self.update_labels(path, labels)
                     self.update_usage_date(path)
-                    yield obj_body_buffer
+                    yield self._get_buffer(path)
                     return
                 except ClientError as e:
                     if (
@@ -117,7 +117,7 @@ class S3(Writable):
         tags_dict = self._tags_to_dict(
             self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
         )
-        return [dict_key[1:] for dict_key in tags_dict if dict_key[0] == '_']
+        return [dict_key[1:] for dict_key in tags_dict if dict_key.startswith('_')]
 
     def update_usage_date(self, path: str):
         tags_dict = self._tags_to_dict(
