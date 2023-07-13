@@ -77,19 +77,16 @@ class S3(Writable):
             path = self._key_to_path(key)
             with value_to_buffer(value) as value:
                 try:
-                    self.s3.get_object(Bucket=self.bucket, Key=path)
-                    obj_body = self.s3.get_object(Bucket=self.bucket, Key=path).get(
-                        "Body"
-                    )
+                    obj_body_buffer = self._get_buffer(path)
                     try:
-                        match_buffers(value, obj_body, context=key.hex())
+                        match_buffers(value, obj_body_buffer, context=key.hex())
                     except ValueError as e:
                         raise CollisionError(
                             f"Written value and the new one doesn't match: {key}"
                         ) from e
                     self.update_labels(path, labels)
                     self.update_usage_date(path)
-                    yield self._get_buffer(path)
+                    yield obj_body_buffer
                     return
                 except ClientError as e:
                     if (

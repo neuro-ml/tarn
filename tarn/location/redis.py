@@ -22,7 +22,7 @@ class RedisLocation(Writable):
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         for raw_key in self.redis.scan_iter(match=self.prefix + b"*"):
-            key = raw_key[len(self.prefix) :]
+            key = raw_key[len(self.prefix):]
             yield key, self, RedisMeta(key=key, location=self)
 
     @contextmanager
