@@ -46,7 +46,7 @@ class S3(Writable):
 
             except ClientError as e:
                 if (
-                    e.response['Error']['Code'] == '404'
+                    e.response['ResponseMetadata']['HTTPStatusCode'] == 404
                     or e.response['Error']['Code'] == 'NoSuchKey'
                 ):  # file doesn't exist
                     yield
