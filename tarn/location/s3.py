@@ -173,20 +173,16 @@ class StreamingBodyBuffer(BinaryIO):
         if whence == SEEK_SET:
             if offset == 0:
                 self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return self.tell()
+                return 0
             if offset == self.tell():
-                return self.tell()
+                return offset
 
         if whence == SEEK_CUR:
             if offset == 0:
                 return self.tell()
             if offset == -self.tell():
                 self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return self.tell()
-
-        if whence == SEEK_END:
-            if offset == 0:
-                return self.tell()
+                return 0
 
         raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
 
