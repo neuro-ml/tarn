@@ -70,7 +70,7 @@ class S3(Writable):
             path = self._key_to_path(key)
             with value_to_buffer(value) as value:
                 try:
-                    with self._get_buffer as obj_body_buffer:
+                    with self._get_buffer(path) as obj_body_buffer:
                         try:
                             match_buffers(value, obj_body_buffer, context=key.hex())
                         except ValueError as e:
@@ -142,6 +142,8 @@ class S3(Writable):
         return None
 
     def _get_buffer(self, path):
+        # with self.s3.get_object(Bucket=self.bucket, Key=path)['Body'] as obj_body:
+        #     assert False, obj_body.read()
         return StreamingBodyBuffer(self.s3.get_object, Bucket=self.bucket, Key=path)
 
     def _key_to_path(self, key: Key):
@@ -171,25 +173,31 @@ class StreamingBodyBuffer(BinaryIO):
         if whence == SEEK_SET:
             if offset == 0:
                 self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return
+                return self.tell()
             if offset == self.tell():
-                return
+                return self.tell()
 
         if whence == SEEK_CUR:
             if offset == 0:
-                return
+                return self.tell()
             if offset == -self.tell():
                 self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return
+                return self.tell()
 
         if whence == SEEK_END:
             if offset == 0:
-                return
+                return self.tell()
 
         raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def __getattribute__(self, attr) -> Any:
-        if attr in ('seek', 'getter', 'kwargs'):
+        if attr in ('seek', 'getter', 'kwargs', '__enter__', '__exit__'):
             return super().__getattribute__(attr)
         streaming_body = super().__getattribute__('_streaming_body')
         return getattr(streaming_body, attr)
