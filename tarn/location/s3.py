@@ -186,6 +186,9 @@ class StreamingBodyBuffer(BinaryIO):
 
         raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
 
+    def seekable(self):
+        return True
+
     def __enter__(self):
         return self
 
