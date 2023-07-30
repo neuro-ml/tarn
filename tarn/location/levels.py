@@ -32,46 +32,40 @@ class Levels(Writable):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        # TODO: ExitStack?
-        #  https://docs.python.org/3/library/contextlib.html#replacing-any-use-of-try-finally-and-flag-variables
-        raised = False
         for index, config in enumerate(self._levels):
+            leave = False
             with config.location.read(key, True) as value:
                 if value is not None:
+                    # we must leave the loop after the first successful read
+                    leave = True
                     # try to write to a level with higher priority
                     with self._replicate(key, *value, index) as (value_copy, labels_copy):
-                        try:
-                            if return_labels:
-                                yield value_copy, labels_copy
-                            else:
-                                yield value_copy
-                            return
-                        except BaseException:
-                            raised = True
-                            raise
+                        if return_labels:
+                            yield value_copy, labels_copy
+                        else:
+                            yield value_copy
 
-            if raised:
+            # but the context manager might have silenced the error, so we need an extra return here
+            if leave:
                 return
 
         yield None
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
-        raised = False
         for config in self._levels:
             location = config.location
             if config.write and isinstance(location, Writable):
+                leave = False
                 with location.write(key, value, labels) as written:
                     if written is not None:
-                        try:
-                            yield written
-                            return
-                        except BaseException:
-                            raised = True
-                            raise
+                        # we must leave the loop after the first successful write
+                        leave = True
+                        yield written
 
-            if raised:
-                return
+                # but the context manager might have silenced the error, so we need an extra return here
+                if leave:
+                    return
 
         yield None
 

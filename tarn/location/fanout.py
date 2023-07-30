@@ -19,37 +19,31 @@ class Fanout(Writable):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        raised = False
         for location in self._locations:
+            leave = False
             with location.read(key, return_labels) as value:
                 if value is not None:
-                    try:
-                        yield value
-                        return
-                    except BaseException:
-                        raised = True
-                        raise
+                    leave = True
+                    yield value
 
-            if raised:
+            # see more info on the "leave" trick in `Levels`
+            if leave:
                 return
 
         yield None
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
-        raised = False
         for location in self._locations:
             if isinstance(location, Writable):
+                leave = False
                 with location.write(key, value, labels) as written:
                     if written is not None:
-                        try:
-                            yield written
-                            return
-                        except BaseException:
-                            raised = True
-                            raise
+                        leave = True
+                        yield written
 
-                if raised:
+                # see more info on the "leave" trick in `Levels`
+                if leave:
                     return
 
         yield None
