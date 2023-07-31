@@ -59,11 +59,6 @@ class S3(Writable):
         except StorageCorruption:
             self.delete(key)
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
-        for key in keys:
-            with self.read(key, True) as value:
-                yield key, value
-
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         try:

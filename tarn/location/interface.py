@@ -24,7 +24,6 @@ class Location(ABC):
         ...             print('found', file.read())
         """
 
-    @abstractmethod
     def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[None, Tuple[Value, MaybeLabels]]]]:
         """
         Reads multiple values given a collection of `keys`.
@@ -37,6 +36,9 @@ class Location(ABC):
         ...     else:
         ...        print(key, 'found')
         """
+        for key in keys:
+            with self.read(key, True) as value:
+                yield key, value
 
     @abstractmethod
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
