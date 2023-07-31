@@ -1,7 +1,7 @@
 import sys
 from contextlib import contextmanager
 from itertools import islice
-from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
+from typing import BinaryIO, ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
@@ -66,6 +66,9 @@ class Levels(Writable):
                 # but the context manager might have silenced the error, so we need an extra return here
                 if leave:
                     return
+
+                if isinstance(value, BinaryIO):
+                    value.seek(0)
 
         yield None
 

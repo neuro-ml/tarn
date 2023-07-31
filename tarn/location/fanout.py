@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import ContextManager, Iterable, Tuple, Union
+from typing import BinaryIO, ContextManager, Iterable, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
@@ -45,6 +45,9 @@ class Fanout(Writable):
                 # see more info on the "leave" trick in `Levels`
                 if leave:
                     return
+
+                if isinstance(value, BinaryIO):
+                    value.seek(0)
 
         yield None
 
