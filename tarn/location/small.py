@@ -1,6 +1,7 @@
 from contextlib import contextmanager
-from typing import ContextManager, Iterable, Self, Tuple, Union
+from typing import ContextManager, Iterable, Tuple, Union
 
+from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, Value
 from ..utils import value_to_buffer
 from .interface import Meta, Writable
