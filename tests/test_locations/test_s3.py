@@ -16,7 +16,7 @@ def test_storage_s3(s3_client, bucket_name):
     file = storage.read(lambda x: x, key)
     with location.write(b'123/456', b'123456', None) as v:
         pass
-    with location.write(b'123/4567', __file__, None) as v:
+    with location.write(b'123/4567', Path(__file__), None) as v:
         pass
     with location.read(key, return_labels=True) as content:
         assert sorted(content[1]) == sorted(['IRA', 'LABS', 'IRA1'])
