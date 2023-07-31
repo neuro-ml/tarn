@@ -1,11 +1,12 @@
 import sys
 from contextlib import contextmanager
 from itertools import islice
-from typing import BinaryIO, ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
+from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from ..location import Location, Writable
+from ..utils import reusable
 
 
 class Level(NamedTuple):
@@ -56,19 +57,17 @@ class Levels(Writable):
         for config in self._levels:
             location = config.location
             if config.write and isinstance(location, Writable):
-                leave = False
-                with location.write(key, value, labels) as written:
-                    if written is not None:
-                        # we must leave the loop after the first successful write
-                        leave = True
-                        yield written
+                with reusable(value) as value:
+                    leave = False
+                    with location.write(key, value, labels) as written:
+                        if written is not None:
+                            # we must leave the loop after the first successful write
+                            leave = True
+                            yield written
 
-                # but the context manager might have silenced the error, so we need an extra return here
-                if leave:
-                    return
-
-                if isinstance(value, BinaryIO):
-                    value.seek(0)
+                    # but the context manager might have silenced the error, so we need an extra return here
+                    if leave:
+                        return
 
         yield None
 

@@ -29,7 +29,7 @@ class SmallLocation(Writable):
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         with value_to_buffer(value) as value:
             content = value.read(self.max_size + 1)
-            if len(content) < self.max_size:
+            if len(content) <= self.max_size:
                 with self.location.write(key, content, labels) as buffer:
                     yield buffer
                     return

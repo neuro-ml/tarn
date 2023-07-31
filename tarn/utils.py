@@ -62,9 +62,19 @@ def value_to_buffer(value: Union[Value, bytes]):
     if isinstance(value, bytes):
         yield BytesIO(value)
 
-    elif isinstance(value, os.PathLike):
+    elif isinstance(value, (str, os.PathLike)):
         with open(value, 'rb') as file:
             yield file
 
     else:
         yield value
+
+
+@contextmanager
+def reusable(value: Value):
+    if isinstance(value, BinaryIO):
+        offset = value.tell()
+        yield value
+        value.seek(offset)
+        return
+    yield value

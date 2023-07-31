@@ -1,8 +1,9 @@
 from contextlib import contextmanager
-from typing import BinaryIO, ContextManager, Iterable, Tuple, Union
+from typing import ContextManager, Iterable, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
+from ..utils import reusable
 from .interface import Location, Writable
 
 
@@ -36,19 +37,16 @@ class Fanout(Writable):
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         for location in self._locations:
             if isinstance(location, Writable):
-                leave = False
-                with location.write(key, value, labels) as written:
-                    if written is not None:
-                        leave = True
-                        yield written
+                with reusable(value) as value:
+                    leave = False
+                    with location.write(key, value, labels) as written:
+                        if written is not None:
+                            leave = True
+                            yield written
 
-                # see more info on the "leave" trick in `Levels`
-                if leave:
-                    return
-
-                if isinstance(value, BinaryIO):
-                    value.seek(0)
-
+                    # see more info on the "leave" trick in `Levels`
+                    if leave:
+                        return
         yield None
 
     def delete(self, key: Key) -> bool:
