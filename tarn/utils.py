@@ -62,7 +62,7 @@ def value_to_buffer(value: Union[Value, bytes]):
     if isinstance(value, bytes):
         yield BytesIO(value)
 
-    elif isinstance(value, (str, os.PathLike)):
+    elif isinstance(value, os.PathLike):
         with open(value, 'rb') as file:
             yield file
 
