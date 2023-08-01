@@ -7,7 +7,7 @@ from redis import Redis
 
 from ..digest import value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
-from ..interface import Key, Keys, MaybeLabels, Meta, Value
+from ..interface import Key, MaybeLabels, Meta, Value
 from .interface import Writable
 
 
@@ -98,6 +98,7 @@ class RedisLocation(Writable):
         labels_key = b'labels' + self.prefix + key
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.delete(content_key, labels_key, usage_date_key)
+        return True
 
 
 class RedisMeta(Meta):
