@@ -68,13 +68,3 @@ def value_to_buffer(value: Union[Value, bytes]):
 
     else:
         yield value
-
-
-@contextmanager
-def reusable(value: Value):
-    if isinstance(value, BinaryIO):
-        offset = value.tell()
-        yield value
-        value.seek(offset)
-        return
-    yield value
