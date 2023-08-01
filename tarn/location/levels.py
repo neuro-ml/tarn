@@ -1,11 +1,12 @@
 import sys
 from contextlib import contextmanager
 from itertools import islice
-from typing import BinaryIO, ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
+from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from ..location import Location, Writable
+from ..utils import is_binary_io
 
 
 class Level(NamedTuple):
@@ -56,7 +57,7 @@ class Levels(Writable):
         for config in self._levels:
             location = config.location
             if config.write and isinstance(location, Writable):
-                if isinstance(value, BinaryIO):
+                if is_binary_io(value):
                     offset = value.tell()
                 leave = False
                 with location.write(key, value, labels) as written:
@@ -67,7 +68,7 @@ class Levels(Writable):
                 # but the context manager might have silenced the error, so we need an extra return here
                 if leave:
                     return
-                if isinstance(value, BinaryIO) and offset != value.tell():
+                if is_binary_io(value) and offset != value.tell():
                     value.seek(offset)
 
         yield None
@@ -108,13 +109,13 @@ class Levels(Writable):
         for config in islice(self._levels, index):
             location = config.location
             if config.replicate and isinstance(location, Writable):
-                if isinstance(value, BinaryIO):
+                if is_binary_io(value):
                     offset = value.tell()
                 with _propagate_exception(location.write(key, value, labels)) as written:
                     if written is not None:
                         yield written, labels
                         return
-                if isinstance(value, BinaryIO) and offset != value.tell():
+                if is_binary_io(value) and offset != value.tell():
                     value.seek(offset)
 
         yield value, labels
