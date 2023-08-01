@@ -84,7 +84,7 @@ class S3(Writable):
                             return
                 except ClientError as e:
                     if (
-                        e.response['Error']['Code'] == '404'
+                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
                         or e.response['Error']['Code'] == 'NoSuchKey'
                     ):
                         self.s3.upload_fileobj(
