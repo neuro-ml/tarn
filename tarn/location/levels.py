@@ -56,7 +56,8 @@ class Levels(Writable):
         for config in self._levels:
             location = config.location
             if config.write and isinstance(location, Writable):
-                offset = value.tell()
+                if isinstance(value, BinaryIO):
+                    offset = value.tell()
                 leave = False
                 with location.write(key, value, labels) as written:
                     if written is not None:
@@ -66,7 +67,8 @@ class Levels(Writable):
                 # but the context manager might have silenced the error, so we need an extra return here
                 if leave:
                     return
-                value.seek(offset)
+                if isinstance(value, BinaryIO):
+                    value.seek(offset)
 
         yield None
 
