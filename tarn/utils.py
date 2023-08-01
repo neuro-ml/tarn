@@ -71,7 +71,8 @@ def value_to_buffer(value: Union[Value, bytes]):
 
 
 def is_binary_io(x):
-    if isinstance(x, (BinaryIO, RawIOBase, BufferedIOBase)):
+    if isinstance(x, (str, os.PathLike)):
+        return False
+    if hasattr(x, 'read') and hasattr(x, 'seek') and hasattr(x, 'tell'):
         return True
-    assert isinstance(x, (str, os.PathLike))
-    return False
+    raise TypeError(f'x should be readable and seekable stream, not {type(x)}.')
