@@ -20,3 +20,7 @@ class SerializerError(Exception):
 
 class DeserializationError(ReadError):
     """Something is wrong with the data being deserialized"""
+
+
+class CollisionError(WriteError):
+    """Values doesn't match"""
