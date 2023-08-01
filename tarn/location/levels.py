@@ -108,10 +108,14 @@ class Levels(Writable):
         for config in islice(self._levels, index):
             location = config.location
             if config.replicate and isinstance(location, Writable):
+                if isinstance(value, BinaryIO):
+                    offset = value.tell()
                 with _propagate_exception(location.write(key, value, labels)) as written:
                     if written is not None:
                         yield written, labels
                         return
+                if isinstance(value, BinaryIO) and offset != value.tell():
+                    value.seek(offset)
 
         yield value, labels
 
