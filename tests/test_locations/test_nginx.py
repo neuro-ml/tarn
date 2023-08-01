@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tarn import Nginx, ReadError, HashKeyStorage
+from tarn import HashKeyStorage, Nginx, ReadError
 
 
 def load_text(path):
@@ -21,7 +21,7 @@ def nginx_url(inside_ci):
 @pytest.mark.nginx
 def test_nginx_storage(storage_factory, nginx_url):
     with storage_factory() as local, storage_factory(root=STORAGE_ROOT, exist_ok=True) as remote:
-        key = remote.write(__file__)
+        key = remote.write(Path(__file__))
         with pytest.raises(ReadError):
             local.read(load_text, key)
 
@@ -36,7 +36,7 @@ def test_missing(storage_factory, nginx_url):
         location = Nginx(nginx_url)
         location._get_config()
 
-        key = remote.write(__file__)
+        key = remote.write(Path(__file__))
         missing = key[::-1]
         for k, v in location.read_batch([key, missing]):
             if v is not None:

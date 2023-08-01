@@ -8,7 +8,7 @@ from typing import Any, BinaryIO, Callable, Collection, Iterable, Optional, Sequ
 Key = bytes
 Keys = Sequence[Key]
 PathOrStr = Union[Path, str, os.PathLike]
-Value = Union[BinaryIO, PathOrStr]
+Value = Union[BinaryIO, os.PathLike]
 MaybeValue = Optional[Value]
 MaybeLabels = Optional[Collection[str]]
 

@@ -89,11 +89,6 @@ class DiskDict(Writable):
 
         yield None
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
-        for key in keys:
-            with self.read(key, True) as value:
-                yield key, value
-
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         file = self._key_to_path(key)
