@@ -8,7 +8,6 @@ from tarn.location import Fanout, Levels, RedisLocation, SmallLocation
 
 @pytest.mark.redis
 def test_buffer_exhaustion(redis_hostname):
-    redis_hostname = 'localhost'
     redis_instance = redis.Redis(redis_hostname)
     big = RedisLocation(redis_instance)
     small = SmallLocation(RedisLocation(redis_instance), 5)
