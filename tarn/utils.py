@@ -5,8 +5,6 @@ from io import BufferedIOBase, BytesIO, RawIOBase
 from pathlib import Path
 from typing import BinaryIO, Union
 
-from matplotlib.dates import TU
-
 from .compat import set_path_attrs
 from .interface import Value  # noqa
 
