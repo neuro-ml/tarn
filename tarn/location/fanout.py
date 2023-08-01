@@ -46,7 +46,7 @@ class Fanout(Writable):
                 # see more info on the "leave" trick in `Levels`
                 if leave:
                     return
-                if isinstance(value, BinaryIO):
+                if isinstance(value, BinaryIO) and offset != value.tell():
                     value.seek(offset)
         yield None
 
