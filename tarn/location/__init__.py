@@ -6,3 +6,4 @@ from .nginx import Nginx
 from .redis import RedisLocation
 from .s3 import S3
 from .scp import SCP
+from .small import SmallLocation

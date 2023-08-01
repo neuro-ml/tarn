@@ -59,11 +59,6 @@ class S3(Writable):
         except StorageCorruption:
             self.delete(key)
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
-        for key in keys:
-            with self.read(key, True) as value:
-                yield key, value
-
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         try:
@@ -185,6 +180,9 @@ class StreamingBodyBuffer(BinaryIO):
                 return 0
 
         raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
+
+    def seekable(self):
+        return True
 
     def __enter__(self):
         return self

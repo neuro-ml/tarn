@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 
-from tarn import SCP, ReadError, HashKeyStorage
+from tarn import SCP, HashKeyStorage, ReadError
 
 
 def load_text(path):
@@ -18,7 +20,7 @@ STORAGE_ROOT = '/tmp/scp'
 @pytest.mark.ssh
 def test_storage_ssh(storage_factory):
     with storage_factory() as local, storage_factory(root=STORAGE_ROOT, exist_ok=True, names=None) as remote:
-        key = remote.write(__file__)
+        key = remote.write(Path(__file__))
         with pytest.raises(ReadError):
             local.read(load_text, key)
 
