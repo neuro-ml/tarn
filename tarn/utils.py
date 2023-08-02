@@ -1,12 +1,12 @@
 import filecmp
 import os
 from contextlib import contextmanager
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO, Union
 
 from .compat import set_path_attrs
-from .interface import Value  # noqa
+from .interface import Key, Value  # noqa
 
 # TODO: legacy
 PathLike = Union[Path, str]
