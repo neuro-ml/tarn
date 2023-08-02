@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import BinaryIO, Union
 
 from .compat import set_path_attrs
-from .interface import Key, Value  # noqa
+from .interface import Value
 
 # TODO: legacy
 PathLike = Union[Path, str]
