@@ -9,8 +9,8 @@ from .interface import Location, Writable
 
 class Fanout(Writable):
     def __init__(self, *locations: Location):
-        sizes = {location.key_size for location in locations if location.key_size is not None}
-        hashes = {location.hash for location in locations if location.hash is not None}
+        sizes = _get_not_none(locations, 'key_size')
+        hashes = _get_not_none(locations, 'hash')
         assert len(sizes) <= 1, sizes
         assert len(hashes) <= 1, hashes
 
@@ -80,3 +80,12 @@ class Fanout(Writable):
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         for location in self._locations:
             yield from location.contents()
+
+
+def _get_not_none(seq, name):
+    result = set()
+    for entry in seq:
+        value = getattr(entry, name, None)
+        if value is not None:
+            result.add(value)
+    return result

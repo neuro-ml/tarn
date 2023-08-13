@@ -33,10 +33,9 @@ class PickleKeyStorage:
         if not isinstance(storage, HashKeyStorage):
             storage = HashKeyStorage(storage)
         if algorithm is None:
-            assert index.hash is not None
-            algorithm = index.hash
-        elif index.hash is not None:
-            assert algorithm == index.hash
+            algorithm = getattr(index, 'hash', None)
+            if algorithm is None:
+                algorithm = storage.algorithm
 
         self.index = index
         self.storage = storage
@@ -72,7 +71,8 @@ class PickleKeyStorage:
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
         try:
-            with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()), labels=None) as written:
+            with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()),
+                                  labels=None) as written:
                 if written is None:
                     if error:
                         raise WriteError('The index could not be written to any storage')

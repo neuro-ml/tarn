@@ -62,7 +62,7 @@ class ToolConfig(NoExtra):
 
 
 class StorageConfig(NoExtra):
-    hash: HashConfig
+    hash: HashConfig = None
     levels: Optional[Sequence[int]] = Field(None, validate_default=True)
     locker: Optional[ToolConfig] = None
     size: Optional[ToolConfig] = None
@@ -106,6 +106,7 @@ class StorageConfig(NoExtra):
         if not isinstance(values, dict):
             values = values.data
         if v is None:
+            assert 'hash' in values and values['hash'] is not None
             v = 1, values['hash'].build()().digest_size - 1
         return v
 

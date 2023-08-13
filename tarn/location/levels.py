@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
+from .fanout import _get_not_none
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from ..location import Location, Writable
@@ -22,8 +23,8 @@ class Levels(Writable):
             level if isinstance(level, Level) else Level(level, write=True, replicate=True)
             for level in levels
         ]
-        sizes = {level.location.key_size for level in levels if level.location.key_size is not None}
-        hashes = {level.location.hash for level in levels if level.location.hash is not None}
+        sizes = _get_not_none((level.location for level in levels), 'key_size')
+        hashes = _get_not_none((level.location for level in levels), 'hash')
         assert len(sizes) <= 1, sizes
         assert len(hashes) <= 1, hashes
 
