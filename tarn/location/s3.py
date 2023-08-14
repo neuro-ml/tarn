@@ -36,8 +36,9 @@ class S3(Writable):
         self, key: Key, return_labels: bool
     ) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         try:
+            path = self._key_to_path(key)
             try:
-                path = self._key_to_path(key)
+                self.update_usage_date(path)
                 if return_labels:
                     with self._get_buffer(path) as buffer:
                         yield buffer, self.get_labels(path)
