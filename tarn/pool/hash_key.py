@@ -1,3 +1,4 @@
+import hashlib
 import os
 from contextlib import contextmanager
 from io import BytesIO
@@ -17,7 +18,7 @@ LocationsLike = Union[LocationLike, Sequence[LocationLike]]
 
 class HashKeyStorage:
     def __init__(self, local: LocationsLike, remote: LocationsLike = (), fetch: bool = True, error: bool = True,
-                 algorithm: Optional[Type[HashAlgorithm]] = None, labels: MaybeLabels = None):
+                 algorithm: Union[Type[HashAlgorithm], str, None] = None, labels: MaybeLabels = None):
         local = resolve_location(local)
         remote = resolve_location(remote)
         hashes = _get_not_none((local, remote), 'hash')
@@ -27,6 +28,8 @@ class HashKeyStorage:
             algorithm, = hashes
         elif hashes:
             assert algorithm == hashes.pop()
+        if isinstance(algorithm, str):
+            algorithm = getattr(hashlib, algorithm)
 
         self._local = local
         self._remote = remote

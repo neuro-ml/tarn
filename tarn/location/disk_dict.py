@@ -6,13 +6,13 @@ import shutil
 import string
 from contextlib import contextmanager
 from pathlib import Path
-from typing import ContextManager, Iterable, Optional, Tuple, Union
+from typing import ContextManager, Iterable, Optional, Tuple, Union, Sequence
 
 from ..compat import Self, copy_file, remove_file, rmtree
-from ..config import load_config, root_params
+from ..config import load_config, root_params, init_storage, StorageConfig
 from ..digest import key_to_relative
 from ..exceptions import CollisionError, StorageCorruption
-from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
+from ..interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..tools import Locker, SizeTracker, UsageTracker
 from ..tools.labels import LabelsStorage
 from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
@@ -28,7 +28,8 @@ class DiskDict(Writable):
         config = load_config(root)
         self.levels = config.levels
         self.hash = config.hash.build()
-        assert self.hash().digest_size == sum(self.levels)
+        if self.hash is not None:
+            assert self.hash().digest_size == sum(self.levels)
 
         self.root = root
         self.permissions, self.group = root_params(self.root)
@@ -47,6 +48,10 @@ class DiskDict(Writable):
         self.labels: LabelsStorage = config.make_labels(labels_folder)
         self.min_free_size = config.free_disk_size
         self.max_size = config.max_size
+
+    @classmethod
+    def create(cls, root: PathOrStr, levels: Sequence[int]):
+        init_storage(StorageConfig(levels=levels), root)
 
     @property
     def key_size(self):

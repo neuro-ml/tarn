@@ -13,6 +13,7 @@ from .interface import PathOrStr
 from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
 
+# TODO: move all this to diskdict
 CONFIG_NAME = 'config.yml'
 
 
@@ -148,4 +149,4 @@ def init_storage(config: StorageConfig, root: PathOrStr, *,
     mkdir(root, permissions, group, parents=True, exist_ok=exist_ok)
 
     with open(root / CONFIG_NAME, 'w') as file:
-        safe_dump(model_dump(config), file)
+        safe_dump(model_dump(config, exclude_defaults=True, exclude_none=True), file)

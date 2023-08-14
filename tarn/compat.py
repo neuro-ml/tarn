@@ -44,8 +44,8 @@ try:
         return cls.model_validate(data)
 
 
-    def model_dump(obj):
-        return obj.model_dump()
+    def model_dump(obj, **kwargs):
+        return obj.model_dump(**kwargs)
 
 
     class NoExtra(BaseModel):
@@ -75,8 +75,8 @@ except ImportError:
         return cls.parse_obj(data)
 
 
-    def model_dump(obj):
-        return obj.dict()
+    def model_dump(obj, **kwargs):
+        return obj.dict(**kwargs)
 
 
     class NoExtra(BaseModel):
