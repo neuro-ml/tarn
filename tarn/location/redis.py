@@ -7,7 +7,7 @@ from redis import Redis
 
 from ..digest import value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
-from ..interface import Key, Keys, MaybeLabels, Meta, Value
+from ..interface import Key, MaybeLabels, Meta, Value
 from .interface import Writable
 
 
@@ -43,13 +43,6 @@ class RedisLocation(Writable):
                 yield buffer
         except StorageCorruption:
             self.delete(key)
-
-    def read_batch(
-        self, keys: Keys
-    ) -> Iterable[Optional[Tuple[Key, Tuple[Value, MaybeLabels]]]]:
-        for key in keys:
-            with self.read(key, True) as value:
-                yield key, value
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
@@ -105,6 +98,7 @@ class RedisLocation(Writable):
         labels_key = b'labels' + self.prefix + key
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.delete(content_key, labels_key, usage_date_key)
+        return True
 
 
 class RedisMeta(Meta):

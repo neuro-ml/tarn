@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
-from io import SEEK_CUR, SEEK_END, SEEK_SET
+from io import SEEK_CUR, SEEK_SET
 from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
 
 from botocore.exceptions import ClientError, ConnectionError
@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError, ConnectionError
 from ..compat import S3Client
 from ..digest import key_to_relative, value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
-from ..interface import Key, Keys, MaybeLabels, Meta, Value
+from ..interface import Key, MaybeLabels, Meta, Value
 from ..utils import match_buffers
 from .interface import Writable
 
@@ -59,11 +59,6 @@ class S3(Writable):
         except StorageCorruption:
             self.delete(key)
 
-    def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[Value, MaybeLabels]]]:
-        for key in keys:
-            with self.read(key, True) as value:
-                yield key, value
-
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager:
         try:
@@ -84,7 +79,7 @@ class S3(Writable):
                             return
                 except ClientError as e:
                     if (
-                        e.response['Error']['Code'] == '404'
+                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
                         or e.response['Error']['Code'] == 'NoSuchKey'
                     ):
                         self.s3.upload_fileobj(
@@ -105,6 +100,7 @@ class S3(Writable):
     def delete(self, key: Key):
         path = self._key_to_path(key)
         self.s3.delete_object(Bucket=self.bucket, Key=path)
+        return True
 
     def update_labels(self, path: str, labels: MaybeLabels):
         if labels is not None:
@@ -185,6 +181,9 @@ class StreamingBodyBuffer(BinaryIO):
                 return 0
 
         raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
+
+    def seekable(self):
+        return True
 
     def __enter__(self):
         return self

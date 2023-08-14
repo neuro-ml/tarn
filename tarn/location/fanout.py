@@ -3,6 +3,7 @@ from typing import ContextManager, Iterable, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
+from ..utils import is_binary_io
 from .interface import Location, Writable
 
 
@@ -19,39 +20,35 @@ class Fanout(Writable):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        raised = False
         for location in self._locations:
+            leave = False
             with location.read(key, return_labels) as value:
                 if value is not None:
-                    try:
-                        yield value
-                        return
-                    except BaseException:
-                        raised = True
-                        raise
+                    leave = True
+                    yield value
 
-            if raised:
+            # see more info on the "leave" trick in `Levels`
+            if leave:
                 return
 
         yield None
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
-        raised = False
         for location in self._locations:
             if isinstance(location, Writable):
+                if is_binary_io(value):
+                    offset = value.tell()
+                leave = False
                 with location.write(key, value, labels) as written:
                     if written is not None:
-                        try:
-                            yield written
-                            return
-                        except BaseException:
-                            raised = True
-                            raise
-
-                if raised:
+                        leave = True
+                        yield written
+                # see more info on the "leave" trick in `Levels`
+                if leave:
                     return
-
+                if is_binary_io(value) and offset != value.tell():
+                    value.seek(offset)
         yield None
 
     def delete(self, key: Key) -> bool:

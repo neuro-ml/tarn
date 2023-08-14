@@ -1,12 +1,12 @@
 import filecmp
 import os
 from contextlib import contextmanager
-from io import BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 from pathlib import Path
 from typing import BinaryIO, Union
 
 from .compat import set_path_attrs
-from .interface import Key, Value  # noqa
+from .interface import Value  # noqa
 
 # TODO: legacy
 PathLike = Union[Path, str]
@@ -68,3 +68,11 @@ def value_to_buffer(value: Union[Value, bytes]):
 
     else:
         yield value
+
+
+def is_binary_io(x):
+    if isinstance(x, (str, os.PathLike)):
+        return False
+    if hasattr(x, 'read') and hasattr(x, 'seek') and hasattr(x, 'tell'):
+        return True
+    raise TypeError(f'x should be readable and seekable stream, not {type(x)}.')
