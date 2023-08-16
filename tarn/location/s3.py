@@ -1,3 +1,4 @@
+import warnings
 from contextlib import contextmanager
 from datetime import datetime
 from io import SEEK_CUR, SEEK_SET
@@ -37,12 +38,11 @@ class S3(Writable):
         try:
             path = self._key_to_path(key)
             try:
+                self.update_usage_date(path)
                 if return_labels:
-                    self.update_usage_date(path)
                     with self._get_buffer(path) as buffer:
                         yield buffer, self.get_labels(path)
                 else:
-                    self.update_usage_date(path)
                     with self._get_buffer(path) as buffer:
                         yield buffer
 
@@ -120,14 +120,17 @@ class S3(Writable):
         return [dict_key[1:] for dict_key in tags_dict if dict_key.startswith('_')]
 
     def update_usage_date(self, path: str):
-        tags_dict = self._tags_to_dict(
-            self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
-        )
-        tags_dict['usage_date'] = str(datetime.now().timestamp())
-        tags = self._dict_to_tags(tags_dict)
-        self.s3.put_object_tagging(
-            Bucket=self.bucket, Key=path, Tagging={'TagSet': tags}
-        )
+        try:
+            tags_dict = self._tags_to_dict(
+                self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
+            )
+            tags_dict['usage_date'] = str(datetime.now().timestamp())
+            tags = self._dict_to_tags(tags_dict)
+            self.s3.put_object_tagging(
+                Bucket=self.bucket, Key=path, Tagging={'TagSet': tags}
+            )
+        except KeyError:
+            warnings.warn(f'Cannot update usage date for the key {self._path_to_key(path)}')
 
     def get_usage_date(self, path: str) -> Optional[datetime]:
         tags_dict = self._tags_to_dict(
