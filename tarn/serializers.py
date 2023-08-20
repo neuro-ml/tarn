@@ -1,6 +1,7 @@
 import inspect
 import json
 import pickle
+import zlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import suppress
@@ -172,7 +173,7 @@ class NumpySerializer(Serializer):
             return read(loader, key)
         except (ValueError, EOFError) as e:
             raise DeserializationError from e
-        except BadGzipFile as e:
+        except (BadGzipFile, zlib.error) as e:
             raise SerializerError from e
 
 
