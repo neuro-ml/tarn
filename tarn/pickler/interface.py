@@ -14,11 +14,17 @@ from contextlib import suppress
 from enum import Enum
 from io import BytesIO
 from operator import itemgetter
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Optional, Set
 
 from cloudpickle.cloudpickle import (
-    is_tornado_coroutine, PYPY, builtin_code_type,
-    _rebuild_tornado_coroutine, _find_imported_submodules, _BUILTIN_TYPE_NAMES, _builtin_type, _extract_class_dict
+    _BUILTIN_TYPE_NAMES,
+    PYPY,
+    _builtin_type,
+    _extract_class_dict,
+    _find_imported_submodules,
+    _rebuild_tornado_coroutine,
+    builtin_code_type,
+    is_tornado_coroutine,
 )
 
 from .compat import DISPATCH, PickleMode, Pickler, extract_func_data, get_pickle_mode
@@ -53,7 +59,15 @@ for _key in _custom:
 class PortablePickler(Pickler):
     dispatch = DISPATCH
 
-    def __init__(self, file, protocol=None, version=None):
+    def __init__(
+            self,
+            file,
+            protocol=None,
+            version=None,
+            stable_objects=None,
+            unstable_objects=None,
+            unstable_modules=None
+    ):
         if version is None:
             version = LATEST_VERSION
 
@@ -64,6 +78,9 @@ class PortablePickler(Pickler):
             types.CodeType: self.reduce_code,
             property: self.reduce_property,
         }
+        self.stable_objects = stable_objects
+        self.unstable_objects = unstable_objects
+        self.unstable_modules = unstable_modules
 
     def save(self, obj, *args, **kwargs):
         if isinstance(obj, str):
@@ -88,9 +105,14 @@ class PortablePickler(Pickler):
         self.write(pickle.REDUCE)
         self.write(pickle.POP)
 
-    @staticmethod
-    def _is_global(obj, name):
-        return get_pickle_mode(obj, name) == PickleMode.Global
+    def _is_global(self, obj, name):
+        return get_pickle_mode(
+            obj,
+            stable_objects=self.stable_objects,
+            unstable_objects=self.unstable_objects,
+            unstable_modules=self.unstable_modules,
+            name=name,
+        ) == PickleMode.Global
 
     @staticmethod
     def reduce_property(obj: property):
@@ -268,9 +290,23 @@ class PortablePickler(Pickler):
         dispatch[_lru_cache_wrapper] = save_lru_cache
 
 
-def dumps(obj, protocol: int = None, version: int = None) -> bytes:
+def dumps(
+        obj,
+        protocol: int = None,
+        version: int = None,
+        stable_objects: Optional[Set] = None,
+        unstable_objects: Optional[Set] = None,
+        unstable_modules: Optional[Set] = None,
+) -> bytes:
     with BytesIO() as file:
-        PortablePickler(file, protocol=protocol, version=version).dump(obj)
+        PortablePickler(
+            file,
+            protocol=protocol,
+            version=version,
+            stable_objects=stable_objects,
+            unstable_objects=unstable_objects,
+            unstable_modules=unstable_modules
+        ).dump(obj)
         result = file.getvalue()
         result = pickletools.optimize(result)
         return result

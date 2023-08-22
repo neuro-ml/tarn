@@ -3,17 +3,24 @@ import inspect
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Union, Type
+from typing import Optional, Set, Type, Union
 
 from . import DiskDict
 from .compat import HashAlgorithm
 from .pool import PickleKeyStorage
-from .pool.hash_key import LocationsLike, HashKeyStorage
+from .pool.hash_key import HashKeyStorage, LocationsLike
 from .serializers import Serializer
 
 
-def smart_cache(index: LocationsLike, storage: Union[HashKeyStorage, LocationsLike, None] = None,
-                serializer: Serializer = None, algorithm: Union[Type[HashAlgorithm], str, None] = None):
+def smart_cache(
+        index: LocationsLike,
+        storage: Union[HashKeyStorage, LocationsLike, None] = None,
+        serializer: Serializer = None,
+        algorithm: Union[Type[HashAlgorithm], str, None] = None,
+        stable_objects: Optional[Set] = None,
+        unstable_objects: Optional[Set] = None,
+        unstable_modules: Optional[Set] = None
+):
     if storage is None:
         assert isinstance(index, (str, os.PathLike))
         algo = algorithm
@@ -31,7 +38,15 @@ def smart_cache(index: LocationsLike, storage: Union[HashKeyStorage, LocationsLi
             DiskDict.create(storage, levels)
         index, storage = DiskDict(index), HashKeyStorage(storage, algorithm=algo)
 
-    pool = PickleKeyStorage(index, storage, serializer, algorithm=algorithm)
+    pool = PickleKeyStorage(
+        index,
+        storage,
+        serializer,
+        algorithm=algorithm,
+        stable_objects=stable_objects,
+        unstable_objects=unstable_objects,
+        unstable_modules=unstable_modules
+    )
 
     def decorator(func):
         signature = inspect.signature(func)
