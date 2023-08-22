@@ -3,7 +3,7 @@ import logging
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import Any, NamedTuple, Optional, Sequence, Set, Type, Union
+from typing import Any, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
 from ..exceptions import CollisionError, DeserializationError, ReadError, StorageCorruption, WriteError
@@ -33,9 +33,9 @@ class PickleKeyStorage:
             storage: Union[HashKeyStorage, LocationsLike],
             serializer: Serializer,
             algorithm: Optional[Type[HashAlgorithm]] = None,
-            stable_objects: Optional[Set] = None,
-            unstable_objects: Optional[Set] = None,
-            unstable_modules: Optional[Set] = None
+            stable_objects: Sequence = (),
+            unstable_objects: Sequence = (),
+            unstable_modules: Sequence = ()
     ):
         index = resolve_location(index)
         if not isinstance(storage, HashKeyStorage):
@@ -141,7 +141,7 @@ class PickleKeyStorage:
         return None, False
 
 
-def _key_to_digest(algorithm, key, version=None, stable_objects=None, unstable_objects=None, unstable_modules=None):
+def _key_to_digest(algorithm, key, version=None, stable_objects=(), unstable_objects=(), unstable_modules=()):
     pickled = dumps(
         key,
         version=version,

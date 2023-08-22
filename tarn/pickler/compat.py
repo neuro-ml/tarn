@@ -41,7 +41,7 @@ from collections import ChainMap
 from enum import Enum
 from pickle import _Pickler as Pickler
 from types import ModuleType
-from typing import Optional, Set, TypeVar, Union
+from typing import Set, TypeVar, Union
 from weakref import WeakSet
 
 from cloudpickle import CloudPickler
@@ -57,10 +57,10 @@ class PickleMode(Enum):
     Global, Deep = range(2)
 
 
-def get_pickle_mode(obj, stable_objects=None, unstable_objects=None, unstable_modules=None, name=None):
-    stable_objects = _empty_set_if_none(stable_objects)
-    unstable_objects = _empty_set_if_none(unstable_objects)
-    unstable_modules = _empty_set_if_none(unstable_modules)
+def get_pickle_mode(obj, stable_objects=(), unstable_objects=(), unstable_modules=(), name=None):
+    stable_objects = set(stable_objects)
+    unstable_objects = set(unstable_objects)
+    unstable_modules = set(unstable_modules)
     assert not stable_objects & unstable_objects, f'stable_objects and unstable objects intersection is {{{stable_objects & unstable_objects}}}'
     if obj in stable_objects:
         return PickleMode.Global
@@ -185,10 +185,6 @@ def mark_module_unstable(module: Union[str, ModuleType]):
     if not isinstance(module, str):
         module = module.__name__
     UNSTABLE_MODULES.add(module)
-
-
-def _empty_set_if_none(probably_set: Optional[Set]):
-    return set() if probably_set is None else probably_set
 
 
 is_stable = mark_stable

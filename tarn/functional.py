@@ -3,7 +3,7 @@ import inspect
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Optional, Set, Type, Union
+from typing import Sequence, Type, Union
 
 from . import DiskDict
 from .compat import HashAlgorithm
@@ -17,9 +17,9 @@ def smart_cache(
         storage: Union[HashKeyStorage, LocationsLike, None] = None,
         serializer: Serializer = DefaultSerializer,
         algorithm: Union[Type[HashAlgorithm], str, None] = None,
-        stable_objects: Optional[Set] = None,
-        unstable_objects: Optional[Set] = None,
-        unstable_modules: Optional[Set] = None
+        stable_objects: Sequence = (),
+        unstable_objects: Sequence = (),
+        unstable_modules: Sequence = ()
 ):
     if storage is None:
         assert isinstance(index, (str, os.PathLike))
