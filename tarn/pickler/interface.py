@@ -14,7 +14,7 @@ from contextlib import suppress
 from enum import Enum
 from io import BytesIO
 from operator import itemgetter
-from typing import Any, NamedTuple, Sequence
+from typing import Any, Collection, NamedTuple
 
 from cloudpickle.cloudpickle import (
     _BUILTIN_TYPE_NAMES,
@@ -294,9 +294,9 @@ def dumps(
         obj,
         protocol: int = None,
         version: int = None,
-        stable_objects: Sequence = (),
-        unstable_objects: Sequence = (),
-        unstable_modules: Sequence = (),
+        stable_objects: Collection = (),
+        unstable_objects: Collection = (),
+        unstable_modules: Collection = (),
 ) -> bytes:
     with BytesIO() as file:
         PortablePickler(
