@@ -7,7 +7,7 @@ from tarn import DiskDict, Fanout, Level, Levels, StorageCorruption, Writable
 
 def _mkdir(x):
     x.mkdir(parents=True, exist_ok=True)
-    (x / 'config.yml').write_text('{levels: [1, 31], hash: sha256}')
+    (x / 'config.yml').write_text('{levels: [1, -1], hash: sha256}')
     return x
 
 
