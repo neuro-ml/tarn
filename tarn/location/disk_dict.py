@@ -54,7 +54,7 @@ class DiskDict(Writable):
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         tools = self.root / 'tools'
         config = self.root / 'config.yml'
-        for file in self.root.glob('/'.join('*' * len(self.levels) + 1)):
+        for file in self.root.glob('/'.join('*' * len(self.levels))):
             if file == config or file.is_relative_to(tools):
                 continue
 

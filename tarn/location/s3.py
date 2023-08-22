@@ -145,7 +145,7 @@ class S3(Writable):
         return StreamingBodyBuffer(self.s3.get_object, Bucket=self.bucket, Key=path)
 
     def _key_to_path(self, key: Key):
-        return str(key_to_relative(key, [2, len(key) - 2]))
+        return str(key_to_relative(key, [2, None]))
 
     def _path_to_key(self, path: str):
         return bytes.fromhex(path.replace('/', ''))

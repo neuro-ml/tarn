@@ -27,21 +27,25 @@ def key_to_relative(key: AnyStr, levels: Sequence[int]):
         key = key.hex()
 
     # TODO: too expensive?
-    assert len(key) >= get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
+    if levels[-1] is not None and levels[-1] != -1:
+        assert len(key) == get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
 
     parts = []
     start = 0
     for level in levels:
-        stop = start + level * 2
+        if level is None or level == -1:
+            stop = len(key)
+        else:
+            stop = start + level * 2
         parts.append(key[start:stop])
         start = stop
-    if start < len(key):
-        parts.append(key[start:])
 
     return Path(*parts)
 
 
 def get_digest_size(levels, string: bool):
+    if levels[-1] is None or levels[-1] == -1:
+        return None
     size = sum(levels)
     if string:
         size *= 2

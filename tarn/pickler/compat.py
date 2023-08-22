@@ -161,7 +161,7 @@ UNSTABLE_MODULES: Set[str] = set()
 T = TypeVar('T')
 
 
-def make_stable(obj: T) -> T:
+def mark_stable(obj: T) -> T:
     """
     Decorator that opts out a function or class from being pickled during node hash calculation.
     Use it if you are sure that your function/class will never change in a way that might affect its behaviour.
@@ -173,7 +173,7 @@ def make_stable(obj: T) -> T:
     return obj
 
 
-def make_unstable(obj: T) -> T:
+def mark_unstable(obj: T) -> T:
     if obj in STABLE_OBJECTS:
         warnings.warn('The object was already marked as stable')
         STABLE_OBJECTS.remove(obj)
@@ -181,7 +181,7 @@ def make_unstable(obj: T) -> T:
     return obj
 
 
-def make_module_unstable(module: Union[str, ModuleType]):
+def mark_module_unstable(module: Union[str, ModuleType]):
     if not isinstance(module, str):
         module = module.__name__
     UNSTABLE_MODULES.add(module)
@@ -191,6 +191,6 @@ def _empty_set_if_none(probably_set: Optional[Set]):
     return set() if probably_set is None else probably_set
 
 
-is_stable = make_stable
-is_unstable = make_unstable
-unstable_module = make_module_unstable
+is_stable = mark_stable
+is_unstable = mark_unstable
+unstable_module = mark_module_unstable

@@ -9,13 +9,13 @@ from . import DiskDict
 from .compat import HashAlgorithm
 from .pool import PickleKeyStorage
 from .pool.hash_key import HashKeyStorage, LocationsLike
-from .serializers import Serializer
+from .serializers import DefaultSerializer, Serializer
 
 
 def smart_cache(
         index: LocationsLike,
         storage: Union[HashKeyStorage, LocationsLike, None] = None,
-        serializer: Serializer = None,
+        serializer: Serializer = DefaultSerializer,
         algorithm: Union[Type[HashAlgorithm], str, None] = None,
         stable_objects: Optional[Set] = None,
         unstable_objects: Optional[Set] = None,

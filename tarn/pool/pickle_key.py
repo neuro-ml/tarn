@@ -88,8 +88,11 @@ class PickleKeyStorage:
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
         try:
-            with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()),
-                                  labels=None) as written:
+            with self.index.write(
+                digest,
+                BytesIO(json.dumps(mapping, sort_keys=True).encode()),
+                labels=None
+            ) as written:
                 if written is None:
                     if error:
                         raise WriteError('The index could not be written to any storage')

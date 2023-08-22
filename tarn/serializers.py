@@ -211,3 +211,11 @@ class DictSerializer(Serializer):
 def load_json(x):
     with value_to_buffer(x) as buffer:
         return json.load(buffer)
+
+
+DefaultSerializer = ChainSerializer(
+    JsonSerializer(),
+    DictSerializer(serializer=NumpySerializer({np.bool_: 1, np.integer: 1})),
+    NumpySerializer({np.bool_: 1, np.integer: 1}),
+    PickleSerializer(),
+)

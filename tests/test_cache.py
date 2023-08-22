@@ -1,14 +1,12 @@
 import os
 
 import numpy as np
-import pytest
 from pickler_test_helpers import functions
 
 from tarn.cache import CacheIndex, CacheStorage, JsonSerializer, NumpySerializer
 from tarn.config import StorageConfig, ToolConfig, init_storage
 from tarn.functional import smart_cache
-from tarn.pickler.compat import make_stable, make_unstable
-from tarn.serializers import PickleSerializer
+from tarn.pickler.compat import mark_stable, mark_unstable
 
 
 def some_func(x):
@@ -76,18 +74,16 @@ def test_smart_cache(storage_factory, disk_dict_factory):
             cached_f = smart_cache(
                 index_disk_dict,
                 storage,
-                PickleSerializer(),
             )(functions.calls_counter)
             cached_f(1)
             assert functions.calls_counter.counter == 1
             cached_f(1)
             assert functions.calls_counter.counter == 2
 
-            make_stable(functions.calls_counter)
+            mark_stable(functions.calls_counter)
             cached_f = smart_cache(
                 index_disk_dict,
                 storage,
-                PickleSerializer(),
             )(functions.calls_counter)
             cached_f(1)
             assert functions.calls_counter.counter == 3
@@ -97,7 +93,6 @@ def test_smart_cache(storage_factory, disk_dict_factory):
             cached_f = smart_cache(
                 index_disk_dict,
                 storage,
-                PickleSerializer(),
                 unstable_objects={functions.calls_counter}
             )(functions.calls_counter)
             cached_f(1)
@@ -105,11 +100,10 @@ def test_smart_cache(storage_factory, disk_dict_factory):
             cached_f(1)
             assert functions.calls_counter.counter == 5
 
-            make_unstable(functions.calls_counter)
+            mark_unstable(functions.calls_counter)
             cached_f = smart_cache(
                 index_disk_dict,
                 storage,
-                PickleSerializer(),
                 stable_objects={functions.calls_counter}
             )(functions.calls_counter)
             cached_f(1)
