@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import AnyStr, Sequence, Type, Union
+from typing import AnyStr, Optional, Sequence, Type, Union
 
 from .compat import HashAlgorithm
 from .interface import Value
@@ -22,18 +22,18 @@ def digest_value(value: Union[Value, bytes], algorithm: Type[HashAlgorithm], blo
         return hasher.digest()
 
 
-def key_to_relative(key: AnyStr, levels: Sequence[int]):
+def key_to_relative(key: AnyStr, levels: Sequence[Optional[int]]):
     if isinstance(key, bytes):
         key = key.hex()
 
     # TODO: too expensive?
-    if levels[-1] is not None and levels[-1] != -1:
+    if levels[-1] != -1:
         assert len(key) == get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
 
     parts = []
     start = 0
     for level in levels:
-        if level is None or level == -1:
+        if level == -1:
             stop = len(key)
         else:
             stop = start + level * 2
@@ -44,7 +44,7 @@ def key_to_relative(key: AnyStr, levels: Sequence[int]):
 
 
 def get_digest_size(levels, string: bool):
-    if levels[-1] is None or levels[-1] == -1:
+    if levels[-1] == -1:
         return None
     size = sum(levels)
     if string:
