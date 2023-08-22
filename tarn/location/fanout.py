@@ -9,13 +9,10 @@ from .interface import Location, Writable
 
 class Fanout(Writable):
     def __init__(self, *locations: Location):
-        sizes = _get_not_none(locations, 'key_size')
         hashes = _get_not_none(locations, 'hash')
-        assert len(sizes) <= 1, sizes
         assert len(hashes) <= 1, hashes
 
         self._locations = locations
-        self.key_size = sizes.pop() if sizes else None
         self.hash = hashes.pop() if hashes else None
 
     @contextmanager

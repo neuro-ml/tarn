@@ -19,7 +19,6 @@ class S3(Writable):
         self.bucket = bucket_name
         self.s3 = s3_client
         self.hash = None
-        self.key_size = None
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
@@ -130,7 +129,7 @@ class S3(Writable):
                 Bucket=self.bucket, Key=path, Tagging={'TagSet': tags}
             )
         except KeyError:
-            warnings.warn(f'Cannot update usage date for the key {self._path_to_key(path)}')
+            warnings.warn(f'Cannot update usage date for the key {self._path_to_key(path)}', stacklevel=2)
 
     def get_usage_date(self, path: str) -> Optional[datetime]:
         tags_dict = self._tags_to_dict(

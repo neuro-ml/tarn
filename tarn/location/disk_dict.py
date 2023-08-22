@@ -6,10 +6,10 @@ import shutil
 import string
 from contextlib import contextmanager
 from pathlib import Path
-from typing import ContextManager, Iterable, Optional, Tuple, Union, Sequence
+from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Union
 
 from ..compat import Self, copy_file, remove_file, rmtree
-from ..config import load_config, root_params, init_storage, StorageConfig
+from ..config import StorageConfig, init_storage, load_config, root_params
 from ..digest import key_to_relative
 from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
@@ -28,8 +28,6 @@ class DiskDict(Writable):
         config = load_config(root)
         self.levels = config.levels
         self.hash = config.hash.build()
-        if self.hash is not None:
-            assert self.hash().digest_size == sum(self.levels)
 
         self.root = root
         self.permissions, self.group = root_params(self.root)
@@ -53,14 +51,10 @@ class DiskDict(Writable):
     def create(cls, root: PathOrStr, levels: Sequence[int]):
         init_storage(StorageConfig(levels=levels), root)
 
-    @property
-    def key_size(self):
-        return sum(self.levels)
-
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         tools = self.root / 'tools'
         config = self.root / 'config.yml'
-        for file in self.root.glob('/'.join('*' * len(self.levels))):
+        for file in self.root.glob('/'.join('*' * len(self.levels) + 1)):
             if file == config or file.is_relative_to(tools):
                 continue
 

@@ -13,7 +13,6 @@ class SmallLocation(Writable):
         self.location = location
         self.max_size = max_size
         self.hash = None
-        self.key_size = None
 
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         return self.location.contents()

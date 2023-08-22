@@ -18,7 +18,6 @@ class RedisLocation(Writable):
         self.redis = redis
         self.prefix = prefix.encode('utf-8')
         self.hash = None
-        self.key_size = None
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         for raw_key in self.redis.scan_iter(match=self.prefix + b'*'):

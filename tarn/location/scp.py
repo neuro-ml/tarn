@@ -51,10 +51,6 @@ class SCP(Location):
     def __reduce__(self):
         return self.__class__, (self.hostname, self.root, self.port, self.username, self.password, self.key)
 
-    @property
-    def key_size(self):
-        return sum(self.levels) if self.levels is not None else None
-
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         with self._connect() as scp:

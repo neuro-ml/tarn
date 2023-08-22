@@ -35,6 +35,7 @@ def key_to_relative(key: AnyStr, levels: Sequence[int]):
         stop = start + level * 2
         parts.append(key[start:stop])
         start = stop
+    parts.append(key[:start])
 
     return Path(*parts)
 
