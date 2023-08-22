@@ -27,7 +27,7 @@ def key_to_relative(key: AnyStr, levels: Sequence[int]):
         key = key.hex()
 
     # TODO: too expensive?
-    assert len(key) == get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
+    assert len(key) >= get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
 
     parts = []
     start = 0

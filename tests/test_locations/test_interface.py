@@ -29,7 +29,7 @@ def location(request, temp_dir) -> Writable:
 
 
 def test_errors_propagation(location):
-    key = b'0' * sum(location.levels)
+    key = b'0' * 100
     with pytest.raises(ZeroDivisionError):
         with location.write(key, __file__, None):
             raise ZeroDivisionError
@@ -41,12 +41,12 @@ def test_errors_propagation(location):
 
     # missing key
     with pytest.raises(ZeroDivisionError):
-        with location.read(b'1' * sum(location.levels), False):
+        with location.read(b'1' * 100, False):
             raise ZeroDivisionError
 
 
 def test_corrupted_read(location):
-    key, value = b'0' * sum(location.levels), Path(__file__)
+    key, value = b'0' * 100, Path(__file__)
 
     with location.write(key, value, None):
         pass
@@ -60,7 +60,7 @@ def test_corrupted_read(location):
 
 
 def test_corrupted_write(location):
-    key, value = b'0' * sum(location.levels), Path(__file__)
+    key, value = b'0' * 100, Path(__file__)
 
     with location.write(key, value, None) as result:
         assert result.read_bytes() == value.read_bytes()
