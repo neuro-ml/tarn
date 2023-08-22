@@ -22,7 +22,7 @@ def digest_value(value: Union[Value, bytes], algorithm: Type[HashAlgorithm], blo
         return hasher.digest()
 
 
-def key_to_relative(key: AnyStr, levels: Sequence[Optional[int]]):
+def key_to_relative(key: AnyStr, levels: Sequence[int]):
     if isinstance(key, bytes):
         key = key.hex()
 
