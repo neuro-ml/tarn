@@ -29,6 +29,8 @@ def key_to_relative(key: AnyStr, levels: Sequence[Optional[int]]):
     # TODO: too expensive?
     if levels[-1] != -1:
         assert len(key) == get_digest_size(levels, string=True), (len(key), get_digest_size(levels, string=True))
+    if -1 in levels:
+        assert levels.index(-1) == len(levels) - 1
 
     parts = []
     start = 0
