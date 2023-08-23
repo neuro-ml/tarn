@@ -2,12 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from tarn import DiskDict, StorageCorruption, Writable, Levels, Fanout, Level
+from tarn import DiskDict, Fanout, Level, Levels, StorageCorruption, Writable
 
 
 def _mkdir(x):
     x.mkdir(parents=True, exist_ok=True)
-    (x / 'config.yml').write_text('{levels: [1, 31], hash: sha256}')
+    (x / 'config.yml').write_text('{levels: [1, -1], hash: sha256}')
     return x
 
 
@@ -29,7 +29,7 @@ def location(request, temp_dir) -> Writable:
 
 
 def test_errors_propagation(location):
-    key = b'0' * location.key_size
+    key = b'0' * 100
     with pytest.raises(ZeroDivisionError):
         with location.write(key, __file__, None):
             raise ZeroDivisionError
@@ -41,12 +41,12 @@ def test_errors_propagation(location):
 
     # missing key
     with pytest.raises(ZeroDivisionError):
-        with location.read(b'1' * location.key_size, False):
+        with location.read(b'1' * 100, False):
             raise ZeroDivisionError
 
 
 def test_corrupted_read(location):
-    key, value = b'0' * location.key_size, Path(__file__)
+    key, value = b'0' * 100, Path(__file__)
 
     with location.write(key, value, None):
         pass
@@ -60,7 +60,7 @@ def test_corrupted_read(location):
 
 
 def test_corrupted_write(location):
-    key, value = b'0' * location.key_size, Path(__file__)
+    key, value = b'0' * 100, Path(__file__)
 
     with location.write(key, value, None) as result:
         assert result.read_bytes() == value.read_bytes()

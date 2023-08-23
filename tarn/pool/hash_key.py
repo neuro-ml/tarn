@@ -1,3 +1,4 @@
+import hashlib
 import os
 from contextlib import contextmanager
 from io import BytesIO
@@ -9,6 +10,7 @@ from ..digest import digest_value
 from ..exceptions import ReadError, WriteError
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, PathOrStr, Value
 from ..location import DiskDict, Fanout, Levels, Location
+from ..location.fanout import _get_not_none
 
 LocationLike = Union[Location, PathOrStr]
 LocationsLike = Union[LocationLike, Sequence[LocationLike]]
@@ -16,16 +18,18 @@ LocationsLike = Union[LocationLike, Sequence[LocationLike]]
 
 class HashKeyStorage:
     def __init__(self, local: LocationsLike, remote: LocationsLike = (), fetch: bool = True, error: bool = True,
-                 algorithm: Optional[Type[HashAlgorithm]] = None, labels: MaybeLabels = None):
+                 algorithm: Union[Type[HashAlgorithm], str, None] = None, labels: MaybeLabels = None):
         local = resolve_location(local)
         remote = resolve_location(remote)
-        hashes = {location.hash for location in (local, remote) if location.hash is not None}
+        hashes = _get_not_none((local, remote), 'hash')
         assert len(hashes) <= 1, hashes
         if algorithm is None:
             assert hashes
             algorithm, = hashes
         elif hashes:
             assert algorithm == hashes.pop()
+        if isinstance(algorithm, str):
+            algorithm = getattr(hashlib, algorithm)
 
         self._local = local
         self._remote = remote

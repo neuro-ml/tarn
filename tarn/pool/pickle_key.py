@@ -3,7 +3,7 @@ import logging
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import Any, NamedTuple, Optional, Sequence, Type, Union
+from typing import Any, Collection, NamedTuple, Optional, Sequence, Type, Union
 
 from ..compat import HashAlgorithm
 from ..exceptions import CollisionError, DeserializationError, ReadError, StorageCorruption, WriteError
@@ -27,24 +27,40 @@ class _PreparedKey(NamedTuple):
 
 
 class PickleKeyStorage:
-    def __init__(self, index: LocationsLike, storage: Union[HashKeyStorage, LocationsLike], serializer: Serializer,
-                 algorithm: Optional[Type[HashAlgorithm]] = None):
+    def __init__(
+            self,
+            index: LocationsLike,
+            storage: Union[HashKeyStorage, LocationsLike],
+            serializer: Serializer,
+            algorithm: Optional[Type[HashAlgorithm]] = None,
+            stable_objects: Collection = (),
+            unstable_objects: Collection = (),
+            unstable_modules: Collection = ()
+    ):
         index = resolve_location(index)
         if not isinstance(storage, HashKeyStorage):
             storage = HashKeyStorage(storage)
         if algorithm is None:
-            assert index.hash is not None
-            algorithm = index.hash
-        elif index.hash is not None:
-            assert algorithm == index.hash
+            algorithm = getattr(index, 'hash', None)
+            if algorithm is None:
+                algorithm = storage.algorithm
 
         self.index = index
         self.storage = storage
         self.serializer = serializer
         self.algorithm = algorithm
+        self.stable_objects = stable_objects
+        self.unstable_objects = unstable_objects
+        self.unstable_modules = unstable_modules
 
     def prepare(self, key: ProxyKey) -> _PreparedKey:
-        pickled, digest = _key_to_digest(self.algorithm, key)
+        pickled, digest = _key_to_digest(
+            self.algorithm,
+            key,
+            stable_objects=self.stable_objects,
+            unstable_objects=self.unstable_objects,
+            unstable_modules=self.unstable_modules
+        )
         return _PreparedKey(digest, key, pickled)
 
     def read(self, key: ProxyKey, *, error: bool = True):
@@ -72,7 +88,11 @@ class PickleKeyStorage:
         # we want a reproducible mapping each time
         logger.info('Saving to index %s', digest)
         try:
-            with self.index.write(digest, BytesIO(json.dumps(mapping, sort_keys=True).encode()), labels=None) as written:
+            with self.index.write(
+                digest,
+                BytesIO(json.dumps(mapping, sort_keys=True).encode()),
+                labels=None
+            ) as written:
                 if written is None:
                     if error:
                         raise WriteError('The index could not be written to any storage')
@@ -121,8 +141,14 @@ class PickleKeyStorage:
         return None, False
 
 
-def _key_to_digest(algorithm, key, version=None):
-    pickled = dumps(key, version=version)
+def _key_to_digest(algorithm, key, version=None, stable_objects=(), unstable_objects=(), unstable_modules=()):
+    pickled = dumps(
+        key,
+        version=version,
+        stable_objects=stable_objects,
+        unstable_objects=unstable_objects,
+        unstable_modules=unstable_modules,
+    )
     digest = algorithm(pickled).digest()
     return pickled, digest
 

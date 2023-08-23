@@ -13,6 +13,7 @@ from .interface import PathOrStr
 from .tools import DummyLabels, DummyLocker, DummySize, DummyUsage, LabelsStorage, Locker, SizeTracker, UsageTracker
 from .utils import mkdir
 
+# TODO: move all this to diskdict
 CONFIG_NAME = 'config.yml'
 
 
@@ -62,7 +63,7 @@ class ToolConfig(NoExtra):
 
 
 class StorageConfig(NoExtra):
-    hash: HashConfig
+    hash: HashConfig = None
     levels: Optional[Sequence[int]] = Field(None, validate_default=True)
     locker: Optional[ToolConfig] = None
     size: Optional[ToolConfig] = None
@@ -106,6 +107,7 @@ class StorageConfig(NoExtra):
         if not isinstance(values, dict):
             values = values.data
         if v is None:
+            assert 'hash' in values and values['hash'] is not None
             v = 1, values['hash'].build()().digest_size - 1
         return v
 
@@ -147,4 +149,4 @@ def init_storage(config: StorageConfig, root: PathOrStr, *,
     mkdir(root, permissions, group, parents=True, exist_ok=exist_ok)
 
     with open(root / CONFIG_NAME, 'w') as file:
-        safe_dump(model_dump(config), file)
+        safe_dump(model_dump(config, exclude_defaults=True, exclude_none=True), file)

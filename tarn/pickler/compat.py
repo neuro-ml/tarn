@@ -57,7 +57,15 @@ class PickleMode(Enum):
     Global, Deep = range(2)
 
 
-def get_pickle_mode(obj, name=None):
+def get_pickle_mode(obj, stable_objects=(), unstable_objects=(), unstable_modules=(), name=None):
+    stable_objects = set(stable_objects)
+    unstable_objects = set(unstable_objects)
+    unstable_modules = set(unstable_modules)
+    assert not stable_objects & unstable_objects, f'stable_objects and unstable objects intersection is {{{stable_objects & unstable_objects}}}'
+    if obj in stable_objects:
+        return PickleMode.Global
+    if obj in unstable_objects:
+        return PickleMode.Deep
     if obj in STABLE_OBJECTS:
         return PickleMode.Global
     if obj in UNSTABLE_OBJECTS:
@@ -70,7 +78,7 @@ def get_pickle_mode(obj, name=None):
     module = module.__name__
 
     while True:
-        if module in UNSTABLE_MODULES:
+        if module in UNSTABLE_MODULES or module in unstable_modules:
             return PickleMode.Deep
 
         split = module.rsplit('.', 1)
@@ -153,7 +161,7 @@ UNSTABLE_MODULES: Set[str] = set()
 T = TypeVar('T')
 
 
-def is_stable(obj: T) -> T:
+def mark_stable(obj: T) -> T:
     """
     Decorator that opts out a function or class from being pickled during node hash calculation.
     Use it if you are sure that your function/class will never change in a way that might affect its behaviour.
@@ -165,7 +173,7 @@ def is_stable(obj: T) -> T:
     return obj
 
 
-def is_unstable(obj: T) -> T:
+def mark_unstable(obj: T) -> T:
     if obj in STABLE_OBJECTS:
         warnings.warn('The object was already marked as stable')
         STABLE_OBJECTS.remove(obj)
@@ -173,7 +181,12 @@ def is_unstable(obj: T) -> T:
     return obj
 
 
-def unstable_module(module: Union[str, ModuleType]):
+def mark_module_unstable(module: Union[str, ModuleType]):
     if not isinstance(module, str):
         module = module.__name__
     UNSTABLE_MODULES.add(module)
+
+
+is_stable = mark_stable
+is_unstable = mark_unstable
+unstable_module = mark_module_unstable

@@ -1,14 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Type, Union
+from typing import ContextManager, Iterable, Sequence, Tuple, Union
 
-from ..compat import HashAlgorithm, Self
+from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 
 
 class Location(ABC):
-    key_size: Optional[int]
-    hash: Optional[Type[HashAlgorithm]]
-
     @abstractmethod
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         """

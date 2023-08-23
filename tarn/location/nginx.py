@@ -20,10 +20,6 @@ class Nginx(Location):
         self.url = url
         self.levels = self.hash = None
 
-    @property
-    def key_size(self):
-        return sum(self.levels) if self.levels is not None else None
-
     # TODO: use a session
 
     def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[None, Tuple[BinaryIO, MaybeLabels]]]]:

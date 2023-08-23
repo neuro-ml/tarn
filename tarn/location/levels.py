@@ -7,6 +7,7 @@ from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from ..location import Location, Writable
 from ..utils import is_binary_io
+from .fanout import _get_not_none
 
 
 class Level(NamedTuple):
@@ -22,13 +23,10 @@ class Levels(Writable):
             level if isinstance(level, Level) else Level(level, write=True, replicate=True)
             for level in levels
         ]
-        sizes = {level.location.key_size for level in levels if level.location.key_size is not None}
-        hashes = {level.location.hash for level in levels if level.location.hash is not None}
-        assert len(sizes) <= 1, sizes
+        hashes = _get_not_none((level.location for level in levels), 'hash')
         assert len(hashes) <= 1, hashes
 
         self._levels = levels
-        self.key_size = sizes.pop() if sizes else None
         self.hash = hashes.pop() if hashes else None
 
     @contextmanager
