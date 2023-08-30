@@ -27,7 +27,8 @@ class DiskDict(Writable):
         root = Path(root)
         config = load_config(root)
         self.levels = config.levels
-        self.hash = config.hash.build()
+        # TODO: deprecate
+        self.hash = config.hash.build() if config.hash is not None else None
 
         self.root = root
         self.permissions, self.group = root_params(self.root)

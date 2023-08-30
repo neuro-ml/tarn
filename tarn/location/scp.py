@@ -147,8 +147,7 @@ class SCP(Location):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     temp = Path(temp_dir) / 'config.yml'
                     scp.get(str(self.root / 'config.yml'), str(temp))
-                    remote_config = load_config(temp_dir)
-                    self.hash, self.levels = remote_config.hash.build(), remote_config.levels
+                    self.levels = load_config(temp_dir).levels
 
             return True
 
