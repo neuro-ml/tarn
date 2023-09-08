@@ -8,7 +8,7 @@ from ..utils import value_to_buffer
 from .interface import Meta, Writable
 
 
-class SmallLocation(Writable):
+class Small(Writable):
     def __init__(self, location: Writable, max_size: int):
         self.location = location
         self.max_size = max_size
