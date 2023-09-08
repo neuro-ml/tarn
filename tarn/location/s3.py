@@ -4,6 +4,7 @@ from datetime import datetime
 from io import SEEK_CUR, SEEK_SET
 from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
 
+import boto3
 from botocore.exceptions import ClientError, ConnectionError
 
 from ..compat import S3Client
@@ -19,6 +20,21 @@ class S3(Writable):
         self.bucket = bucket_name
         self.s3 = s3_client
         self.hash = None
+
+    @classmethod
+    def create(cls, bucket_name: str, **kwargs):
+        """
+        Examples
+        --------
+        >>> S3.create(
+                'bucket',
+                endpoint_url='127.0.0.1:8000',
+                aws_access_key_id='admin',
+                aws_secret_access_key='secret_key',
+            )
+        """
+        s3_client = boto3.client(**kwargs)
+        return cls(s3_client, bucket_name)
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
