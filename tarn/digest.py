@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import AnyStr, Optional, Sequence, Type, Union
+from typing import AnyStr, Sequence, Type, Union
 
 from .compat import HashAlgorithm
 from .interface import Value

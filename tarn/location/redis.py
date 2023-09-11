@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, AnyStr, ContextManager, Iterable, Optional, Tuple, Union
+from typing import Any, AnyStr, ContextManager, Iterable, Optional, Tuple
 
 from redis import Redis
 

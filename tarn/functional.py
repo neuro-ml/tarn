@@ -3,7 +3,7 @@ import inspect
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Collection, Sequence, Type, Union
+from typing import Collection, Type, Union
 
 from . import DiskDict
 from .compat import HashAlgorithm
