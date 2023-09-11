@@ -39,10 +39,53 @@ import requests
 key = storage.write(requests.get('https://example.com').raw)
 ```
 
+## Smart cache to disk
+
+A really cool feature of `tarn` is [memoization](https://en.wikipedia.org/wiki/Memoization) with automatic invalidation:
+
+```python
+from tarn import smart_cache
+
+
+@smart_cache('/path/to/storage')
+def my_expensive_function(x):
+    y = x ** 2
+    return my_other_function(x, y)
+
+
+def my_other_function(x, y):
+    ...
+    z = x * y
+    return x + y + z
+```
+
+Now the calls to `my_expensive_function` will be automatically cached to disk.
+
+But that's not all! Let's assume that `my_expensive_function` and `my_other_function` are often prone to change,
+and we would like to invalidate the cache when they do. Just annotate these function with a decorator:
+
+```python
+from tarn import smart_cache, mark_unstable
+
+
+@smart_cache('/path/to/storage')
+@mark_unstable
+def my_expensive_function(x):
+    ...
+
+
+@mark_unstable
+def my_other_function(x, y):
+    ...
+```
+
+Now any change to these functions, will cause the cache to invalidate itself!
+
 ## Other storage locations
 
-We support multiple storage locations out of the box. Didn't find the location you were looking for?
-Create an [issue](https://github.com/neuro-ml/tarn/issues).
+We support multiple storage locations out of the box.
+
+Didn't find the location you were looking for? Create an [issue](https://github.com/neuro-ml/tarn/issues).
 
 ### S3
 
@@ -219,5 +262,5 @@ storage = HashKeyStorage(Levels(
 
 # Acknowledgements
 
-Some parts of our cache key generation machinery were heavily inspired by
+Some parts of our cache invalidation machinery were heavily inspired by
 the [cloudpickle](https://github.com/cloudpipe/cloudpickle) project.
