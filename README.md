@@ -1,3 +1,8 @@
+[![codecov](https://codecov.io/gh/neuro-ml/tarn/branch/master/graph/badge.svg)](https://codecov.io/gh/neuro-ml/tarn)
+[![pypi](https://img.shields.io/pypi/v/tarn?logo=pypi&label=PyPi)](https://pypi.org/project/tarn/)
+![License](https://img.shields.io/github/license/neuro-ml/tarn)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/tarn)](https://pypi.org/project/tarn/)
+
 A generic framework for key-value storage
 
 # Install
