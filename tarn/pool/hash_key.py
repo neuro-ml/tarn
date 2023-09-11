@@ -21,11 +21,14 @@ class HashKeyStorage:
                  algorithm: Union[Type[HashAlgorithm], str, None] = None, labels: MaybeLabels = None):
         local = resolve_location(local)
         remote = resolve_location(remote)
+        # TODO: get rid of this logic
         hashes = _get_not_none((local, remote), 'hash')
         assert len(hashes) <= 1, hashes
         if algorithm is None:
-            assert hashes
-            algorithm, = hashes
+            if hashes:
+                algorithm, = hashes
+            else:
+                algorithm = 'sha256'
         elif hashes:
             assert algorithm == hashes.pop()
         if isinstance(algorithm, str):

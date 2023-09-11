@@ -8,9 +8,8 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from tarn import DiskDict, PickleKeyStorage, Storage
+from tarn import DiskDict, PickleKeyStorage, HashKeyStorage
 from tarn.config import StorageConfig, init_storage
-from tarn.pool import HashKeyStorage
 
 pytest_plugins = 'cache_fixtures',
 
@@ -52,7 +51,7 @@ def chdir():
 @pytest.fixture
 def storage_factory():
     @contextmanager
-    def factory(locker=None, group=None, names=('storage',), root=None, exist_ok=False) -> Iterator[Storage]:
+    def factory(locker=None, group=None, names=('storage',), root=None, exist_ok=False) -> Iterator[HashKeyStorage]:
         with _safe_tmpdir() as _root:
             if root is None:
                 root = _root
@@ -62,9 +61,7 @@ def storage_factory():
             for name in names or [Path()]:
                 local = root / name
                 roots.append(local)
-                init_storage(StorageConfig(
-                    hash='blake2b', levels=[1, 63], locker=locker
-                ), local, exist_ok=exist_ok, group=group)
+                init_storage(StorageConfig(locker=locker), local, exist_ok=exist_ok, group=group)
 
             yield HashKeyStorage(list(map(DiskDict, roots)))
 
@@ -74,17 +71,13 @@ def storage_factory():
 @pytest.fixture
 def disk_dict_factory():
     @contextmanager
-    def factory(locker=None, group=None, root=None, exist_ok=False) -> Iterator[Storage]:
+    def factory(locker=None, group=None, root=None, exist_ok=False) -> Iterator[HashKeyStorage]:
         with _safe_tmpdir() as _root:
             if root is None:
                 root = _root
                 exist_ok = True
             root = Path(root)
-
-            init_storage(StorageConfig(
-                hash='blake2b', levels=[1, 63], locker=locker
-            ), root, exist_ok=exist_ok, group=group)
-
+            init_storage(StorageConfig(locker=locker), root, exist_ok=exist_ok, group=group)
             yield DiskDict(root)
 
     return factory
@@ -101,9 +94,7 @@ def disk_cache_factory(storage_factory):
     @contextmanager
     def factory(serializer) -> Iterator[PickleKeyStorage]:
         with _safe_tmpdir() as root, storage_factory() as storage:
-            local = root / 'cache'
-            init_storage(StorageConfig(hash='blake2b', levels=[1, 63]), local)
-            yield PickleKeyStorage(local, storage, serializer)
+            yield PickleKeyStorage(root / 'cache', storage, serializer)
 
     return factory
 
@@ -127,7 +118,8 @@ def bucket_name():
 @pytest.fixture
 def s3_client(bucket_name, inside_ci):
     if inside_ci:
-        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
+        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin',
+                          aws_secret_access_key='adminadminadminadmin')
     else:
         s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
     try:

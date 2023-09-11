@@ -2,8 +2,9 @@ import os
 
 import numpy as np
 from pickler_test_helpers import functions
+from tarn import PickleKeyStorage
 
-from tarn.cache import CacheIndex, CacheStorage, JsonSerializer, NumpySerializer
+from tarn.cache import JsonSerializer, NumpySerializer
 from tarn.config import StorageConfig, ToolConfig, init_storage
 from tarn.functional import smart_cache
 from tarn.pickler.compat import mark_stable, mark_unstable
@@ -16,8 +17,8 @@ def some_func(x):
 def test_read_write(storage_factory, temp_dir):
     with storage_factory() as storage:
         root = temp_dir / 'cache'
-        init_storage(StorageConfig(hash='blake2b', levels=[1, 63], usage=ToolConfig(name='StatUsage')), root)
-        cache = CacheStorage(CacheIndex(root, storage, JsonSerializer()))
+        init_storage(StorageConfig(usage=ToolConfig(name='StatUsage')), root)
+        cache = PickleKeyStorage(root, storage, JsonSerializer())
 
         x = 10
         key = (some_func, x)
@@ -45,8 +46,8 @@ def test_corrupted_numpy(storage_factory, temp_dir):
     root = temp_dir / 'cache'
     storage_root = temp_dir / 'storage'
     with storage_factory(root=storage_root) as storage:
-        init_storage(StorageConfig(hash='blake2b', levels=[1, 63], usage=ToolConfig(name='StatUsage')), root)
-        cache = CacheStorage(CacheIndex(root, storage, NumpySerializer()))
+        init_storage(StorageConfig(usage=ToolConfig(name='StatUsage')), root)
+        cache = PickleKeyStorage(root, storage, NumpySerializer())
 
         key = 10
         value = np.array([1, 2, 3])

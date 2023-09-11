@@ -106,8 +106,10 @@ class StorageConfig(NoExtra):
         if not isinstance(values, dict):
             values = values.data
         if v is None:
-            assert 'hash' in values and values['hash'] is not None
-            v = 1, values['hash'].build()().digest_size - 1
+            if values.get('hash') is not None:
+                v = 1, values['hash'].build()().digest_size - 1
+            else:
+                v = 1, -1
         return v
 
 

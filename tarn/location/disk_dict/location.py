@@ -173,6 +173,7 @@ class DiskDict(Writable):
             return True
 
     def _key_to_path(self, key: Key):
+        assert key, 'The key must be non-empty'
         return self.root / key_to_relative(key, self.levels)
 
     def _writeable(self):
