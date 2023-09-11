@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
+from typing import Any, AnyStr, ContextManager, Iterable, Optional, Tuple, Union
 
 from redis import Redis
 
@@ -12,11 +12,16 @@ from .interface import Writable
 
 
 class RedisLocation(Writable):
-    def __init__(self, redis: Union[Redis, str], prefix: str = ''):
-        if isinstance(redis, str):
-            redis = Redis.from_url(redis)
+    def __init__(self, *args, prefix: AnyStr = '', **kwargs):
+        if len(args) == 1 and isinstance(args[0], Redis):
+            assert not kwargs, kwargs
+            redis, = args
+        else:
+            redis = Redis(*args, **kwargs)
+        if isinstance(prefix, str):
+            prefix = prefix.encode()
         self.redis = redis
-        self.prefix = prefix.encode('utf-8')
+        self.prefix = prefix
         self.hash = None
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
@@ -98,6 +103,13 @@ class RedisLocation(Writable):
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.delete(content_key, labels_key, usage_date_key)
         return True
+
+    @classmethod
+    def _from_args(cls, prefix, kwargs):
+        return cls(prefix=prefix, **kwargs)
+
+    def __reduce__(self):
+        return self._from_args, (self.prefix, self.redis.get_connection_kwargs())
 
 
 class RedisMeta(Meta):

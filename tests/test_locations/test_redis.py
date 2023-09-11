@@ -1,6 +1,7 @@
 from hashlib import blake2b
 from pathlib import Path
 
+import cloudpickle
 import pytest
 import redis
 
@@ -33,3 +34,13 @@ def test_storage_redis(redis_hostname):
     location.delete(key)
     location.delete(b'123456')
     assert keys_amount - len(list(location.contents())) == 2
+
+
+@pytest.mark.redis
+def test_redis_pickle(redis_hostname):
+    redis = RedisLocation(redis_hostname, prefix=b':')
+    x = cloudpickle.loads(cloudpickle.dumps(redis))
+    xx = cloudpickle.loads(cloudpickle.dumps(x))
+
+    assert x.redis.get_connection_kwargs() == xx.redis.get_connection_kwargs()
+    assert x.prefix == xx.prefix == b':'
