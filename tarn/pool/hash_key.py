@@ -66,7 +66,7 @@ class HashKeyStorage:
         with self._read_context(key, fetch, error) as value:
             return func(value, *args, **kwargs)
 
-    def write(self, value: Union[Value, bytes], error: Optional[bool] = None,
+    def write(self, value: Union[Value, str, bytes], error: Optional[bool] = None,
               labels: MaybeLabels = None) -> Optional[Key]:
         error = self._resolve_value(error, self._error, 'error')
         labels = self._resolve_value(labels, self.labels, None)

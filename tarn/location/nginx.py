@@ -8,8 +8,7 @@ from ..compat import Self
 from ..config import load_config_buffer
 from ..digest import key_to_relative
 from ..interface import MaybeLabels, Meta
-from .disk_dict import Key
-from .interface import Keys, Location, MaybeValue
+from .interface import Key, Keys, Location, MaybeValue
 
 
 class Nginx(Location):

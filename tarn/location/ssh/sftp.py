@@ -3,7 +3,7 @@ from typing import ContextManager
 
 from paramiko import SFTPClient
 
-from .remote import SSHRemote
+from tarn.location.ssh.interface import SSHRemote
 
 
 class SFTP(SSHRemote):

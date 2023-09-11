@@ -1,6 +1,6 @@
 from paramiko.config import SSH_PORT
 
-from ..location.scp import SCP
+from tarn.location.ssh.scp import SCP
 
 
 class SSHLocation(SCP):

@@ -4,7 +4,7 @@ from pathlib import Path
 from setuptools import find_packages, setup
 
 classifiers = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'License :: OSI Approved :: Apache Software License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.6',
@@ -31,7 +31,7 @@ setup(
     version=version,
     author='Max',
     author_email='max@ira-labs.com',
-    description='A hashmap-based storage on local and remote disks',
+    description='A generic framework for key-value storage',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/neuro-ml/tarn',

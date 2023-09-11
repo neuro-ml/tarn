@@ -5,7 +5,7 @@ from functools import wraps
 from pathlib import Path
 from typing import Collection, Type, Union
 
-from . import DiskDict
+from .location import DiskDict
 from .compat import HashAlgorithm
 from .pool import PickleKeyStorage
 from .pool.hash_key import HashKeyStorage, LocationsLike
@@ -29,13 +29,8 @@ def smart_cache(
         if isinstance(algo, str):
             algo = getattr(hashlib, algo)
 
-        levels = 1, algo().digest_size
         root = Path(index)
         index, storage = root / 'index', root / 'storage'
-        if not index.exists():
-            DiskDict.create(index, levels)
-        if not storage.exists():
-            DiskDict.create(storage, levels)
         index, storage = DiskDict(index), HashKeyStorage(storage, algorithm=algo)
 
     pool = PickleKeyStorage(

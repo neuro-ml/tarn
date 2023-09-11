@@ -5,6 +5,8 @@ from .levels import Level, Levels
 from .nginx import Nginx
 from .redis import RedisLocation
 from .s3 import S3
-from .scp import SCP
-from .sftp import SFTP
+from .ssh import SCP, SFTP
 from .small import Small
+
+# TODO: deprecated
+SmallLocation = Small

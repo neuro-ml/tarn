@@ -10,11 +10,11 @@ from paramiko import AuthenticationException, SSHClient, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
 
-from ..compat import Self, remove_file, rmtree
-from ..config import load_config
-from ..digest import key_to_relative
-from ..interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
-from .interface import Location
+from ...compat import Self, remove_file, rmtree
+from ...digest import key_to_relative
+from ...interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
+from ..interface import Location
+from ..disk_dict.config import load_config
 
 
 class UnknownHostException(SSHException):

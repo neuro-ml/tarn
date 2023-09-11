@@ -12,12 +12,12 @@ from .interface import Writable
 
 
 class RedisLocation(Writable):
-    def __init__(self, *args, prefix: AnyStr = '', **kwargs):
-        if len(args) == 1 and isinstance(args[0], Redis):
+    def __init__(self, *redis_or_args, prefix: AnyStr = '', **kwargs):
+        if len(redis_or_args) == 1 and isinstance(redis_or_args[0], Redis):
             assert not kwargs, kwargs
-            redis, = args
+            redis, = redis_or_args
         else:
-            redis = Redis(*args, **kwargs)
+            redis = Redis(*redis_or_args, **kwargs)
         if isinstance(prefix, str):
             prefix = prefix.encode()
         self.redis = redis
@@ -110,6 +110,9 @@ class RedisLocation(Writable):
 
     def __reduce__(self):
         return self._from_args, (self.prefix, self.redis.get_connection_kwargs())
+
+    def __eq__(self, other):
+        return isinstance(other, RedisLocation) and self.__reduce__() == other.__reduce__()
 
 
 class RedisMeta(Meta):

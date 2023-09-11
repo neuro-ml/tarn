@@ -36,7 +36,7 @@ class S3(Writable):
 
     @contextmanager
     def read(
-        self, key: Key, return_labels: bool
+            self, key: Key, return_labels: bool
     ) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         try:
             path = self._key_to_path(key)
@@ -51,8 +51,8 @@ class S3(Writable):
 
             except ClientError as e:
                 if (
-                    e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                    or e.response['Error']['Code'] == 'NoSuchKey'
+                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
+                        or e.response['Error']['Code'] == 'NoSuchKey'
                 ):  # file doesn't exist
                     yield
                 else:
@@ -82,8 +82,8 @@ class S3(Writable):
                             return
                 except ClientError as e:
                     if (
-                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                        or e.response['Error']['Code'] == 'NoSuchKey'
+                            e.response['ResponseMetadata']['HTTPStatusCode'] == 404
+                            or e.response['Error']['Code'] == 'NoSuchKey'
                     ):
                         self.s3.upload_fileobj(
                             Bucket=self.bucket, Key=path, Fileobj=value

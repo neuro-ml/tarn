@@ -3,7 +3,7 @@ from typing import ContextManager
 
 from scp import SCPClient, SCPException
 
-from .remote import SSHRemote
+from tarn.location.ssh.interface import SSHRemote
 
 
 class SCP(SSHRemote):
