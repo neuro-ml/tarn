@@ -99,7 +99,8 @@ class PickleKeyStorage:
                     return None
         except CollisionError as e:
             with self.index.read(digest, return_labels=False) as v:
-                raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}') from e
+                with value_to_buffer(v) as v:
+                    raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}') from e
         return digest
 
     def _read_for_digest(self, digest):
