@@ -13,8 +13,7 @@ class Small(Writable):
         self.location = location
         self.max_size = max_size
         # TODO: remove
-        if hasattr(location, 'hash'):
-            self.hash = location.hash
+        self.hash = getattr(location, 'hash', None)
 
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         return self.location.contents()

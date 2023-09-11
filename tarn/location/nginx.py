@@ -39,17 +39,6 @@ class Nginx(Location):
 
         relative = key_to_relative(key, self.levels)
         with requests.get(urljoin(self.url, str(relative)), stream=True) as request:
-            if request.status_code == 301:
-                # TODO: this is probably an old format directory
-                with requests.get(urljoin(self.url, str(relative / 'data')), stream=True) as req:
-                    if req.ok:
-                        with req.raw as raw:
-                            if return_labels:
-                                yield raw, None
-                            else:
-                                yield raw
-                            return
-
             if not request.ok:
                 yield None
                 return
