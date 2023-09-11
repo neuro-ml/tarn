@@ -18,7 +18,7 @@ from .interface import Writable
 class S3(Writable):
     def __init__(self, s3_client_or_url: Union[S3Client, str], bucket_name: str, **kwargs):
         self.bucket = bucket_name
-        if isinstance(str):
+        if isinstance(s3_client_or_url, str):
             self.s3 = boto3.client(endpoint_url=s3_client_or_url, **kwargs)
         else:
             self.s3 = s3_client_or_url
