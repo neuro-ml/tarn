@@ -67,7 +67,7 @@ class SSHRemote(Location, ABC):
             with tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
                 try:
-                    client.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
+                    client.get(str(self.root / key_to_relative(key, self.levels)), str(source))
                     if not source.exists():
                         yield None
                     else:
@@ -101,7 +101,7 @@ class SSHRemote(Location, ABC):
                 source = Path(temp_dir) / 'source'
                 for key in keys:
                     try:
-                        client.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
+                        client.get(str(self.root / key_to_relative(key, self.levels)), str(source))
                         if source.exists():
                             # TODO: legacy
                             if source.is_dir():
