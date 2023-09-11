@@ -11,7 +11,7 @@ from tarn.location import RedisLocation, Small
 @pytest.mark.redis
 def test_storage_small(redis_hostname):
     redis_instance = redis.Redis(redis_hostname)
-    location = SmallRedisLocation(redis_instance, prefix='___test___'), 100000)
+    location = Small(RedisLocation(redis_instance, prefix='___test___'), 100000)
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(Path(__file__), labels=('IRA', 'LABS'))
     key = storage.write(Path(__file__), labels=('IRA1', 'LABS'))
