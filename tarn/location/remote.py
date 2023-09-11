@@ -9,7 +9,6 @@ import paramiko
 from paramiko import AuthenticationException, SSHClient, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
-from scp import SCPClient, SCPException
 
 from ..compat import Self, remove_file, rmtree
 from ..config import load_config
