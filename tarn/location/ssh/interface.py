@@ -48,7 +48,7 @@ class SSHRemote(Location, ABC):
         self.hostname, self.port, self.username, self.password, self.key = hostname, port, username, password, key
         self.root = Path(root)
         self.ssh = ssh
-        self.levels = self.hash = None
+        self.levels = None
 
     @abstractmethod
     def _client(self) -> ContextManager:

@@ -12,7 +12,9 @@ class Small(Writable):
     def __init__(self, location: Writable, max_size: int):
         self.location = location
         self.max_size = max_size
-        self.hash = None
+        # TODO: remove
+        if hasattr(location, 'hash'):
+            self.hash = location.hash
 
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         return self.location.contents()

@@ -17,7 +17,7 @@ class Nginx(Location):
             url += '/'
 
         self.url = url
-        self.levels = self.hash = None
+        self.levels = None
 
     # TODO: use a session
 
@@ -71,7 +71,7 @@ class Nginx(Location):
                     if not request.ok:
                         return
                     config = load_config_buffer(request.text)
-                    self.hash, self.levels = config.hash.build(), config.levels
+                    self.levels = config.levels
 
         except requests.exceptions.RequestException:
             pass

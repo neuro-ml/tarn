@@ -22,7 +22,6 @@ class S3(Writable):
             self.s3 = boto3.client(endpoint_url=s3_client_or_url, **kwargs)
         else:
             self.s3 = s3_client_or_url
-        self.hash = None
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
