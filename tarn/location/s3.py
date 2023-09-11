@@ -16,25 +16,13 @@ from .interface import Writable
 
 
 class S3(Writable):
-    def __init__(self, s3_client: S3Client, bucket_name: str):
+    def __init__(self, s3_client_or_url: Union[S3Client, str], bucket_name: str, **kwargs):
         self.bucket = bucket_name
-        self.s3 = s3_client
+        if isinstance(str):
+            self.s3 = boto3.client(endpoint_url=s3_client_or_url, **kwargs)
+        else:
+            self.s3 = s3_client_or_url
         self.hash = None
-
-    @classmethod
-    def create(cls, bucket_name: str, **kwargs):
-        """
-        Examples
-        --------
-        >>> S3.create(
-                'bucket',
-                endpoint_url='127.0.0.1:8000',
-                aws_access_key_id='admin',
-                aws_secret_access_key='secret_key',
-            )
-        """
-        s3_client = boto3.client(**kwargs)
-        return cls(s3_client, bucket_name)
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
