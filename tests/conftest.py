@@ -6,6 +6,7 @@ from typing import Iterator
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from tarn import DiskDict, HashKeyStorage, PickleKeyStorage
 from tarn.config import StorageConfig, init_storage
