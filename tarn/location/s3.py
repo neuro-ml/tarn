@@ -2,8 +2,10 @@ import warnings
 from contextlib import contextmanager
 from datetime import datetime
 from io import SEEK_CUR, SEEK_SET
+from pickle import PicklingError
 from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
 
+import boto3
 from botocore.exceptions import ClientError, ConnectionError
 
 from ..compat import S3Client
@@ -15,10 +17,14 @@ from .interface import Writable
 
 
 class S3(Writable):
-    def __init__(self, s3_client: S3Client, bucket_name: str):
+    def __init__(self, s3_client_or_url: Union[S3Client, str], bucket_name: str, service_name: str = 's3', **kwargs):
         self.bucket = bucket_name
-        self.s3 = s3_client
-        self.hash = None
+        if isinstance(s3_client_or_url, str):
+            self.s3 = boto3.client(service_name=service_name, endpoint_url=s3_client_or_url, **kwargs)
+        else:
+            self.s3 = s3_client_or_url
+        self._s3_client_or_url = s3_client_or_url
+        self._kwargs = kwargs
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
@@ -32,7 +38,7 @@ class S3(Writable):
 
     @contextmanager
     def read(
-        self, key: Key, return_labels: bool
+            self, key: Key, return_labels: bool
     ) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
         try:
             path = self._key_to_path(key)
@@ -47,8 +53,8 @@ class S3(Writable):
 
             except ClientError as e:
                 if (
-                    e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                    or e.response['Error']['Code'] == 'NoSuchKey'
+                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
+                        or e.response['Error']['Code'] == 'NoSuchKey'
                 ):  # file doesn't exist
                     yield
                 else:
@@ -78,8 +84,8 @@ class S3(Writable):
                             return
                 except ClientError as e:
                     if (
-                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                        or e.response['Error']['Code'] == 'NoSuchKey'
+                            e.response['ResponseMetadata']['HTTPStatusCode'] == 404
+                            or e.response['Error']['Code'] == 'NoSuchKey'
                     ):
                         self.s3.upload_fileobj(
                             Bucket=self.bucket, Key=path, Fileobj=value
@@ -157,6 +163,18 @@ class S3(Writable):
     @staticmethod
     def _dict_to_tags(tag_dict: Mapping[str, str]) -> Iterable[Mapping[str, str]]:
         return [{'Key': key, 'Value': value} for key, value in tag_dict.items()]
+
+    @classmethod
+    def _from_args(cls, s3_client_or_url, bucket_name, kwargs):
+        return cls(s3_client_or_url, bucket_name, **kwargs)
+
+    def __reduce__(self):
+        if isinstance(self._s3_client_or_url, str):
+            return self._from_args, (self._s3_client_or_url, self.bucket, self._kwargs)
+        raise PicklingError('Cannot pickle S3Client')
+
+    def __eq__(self, other):
+        return isinstance(other, S3) and self.__reduce__() == other.__reduce__()
 
 
 class StreamingBodyBuffer(BinaryIO):

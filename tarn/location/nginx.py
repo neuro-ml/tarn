@@ -8,8 +8,7 @@ from ..compat import Self
 from ..config import load_config_buffer
 from ..digest import key_to_relative
 from ..interface import MaybeLabels, Meta
-from .disk_dict import Key
-from .interface import Keys, Location, MaybeValue
+from .interface import Key, Keys, Location, MaybeValue
 
 
 class Nginx(Location):
@@ -18,7 +17,7 @@ class Nginx(Location):
             url += '/'
 
         self.url = url
-        self.levels = self.hash = None
+        self.levels = None
 
     # TODO: use a session
 
@@ -40,17 +39,6 @@ class Nginx(Location):
 
         relative = key_to_relative(key, self.levels)
         with requests.get(urljoin(self.url, str(relative)), stream=True) as request:
-            if request.status_code == 301:
-                # TODO: this is probably an old format directory
-                with requests.get(urljoin(self.url, str(relative / 'data')), stream=True) as req:
-                    if req.ok:
-                        with req.raw as raw:
-                            if return_labels:
-                                yield raw, None
-                            else:
-                                yield raw
-                            return
-
             if not request.ok:
                 yield None
                 return
@@ -72,7 +60,7 @@ class Nginx(Location):
                     if not request.ok:
                         return
                     config = load_config_buffer(request.text)
-                    self.hash, self.levels = config.hash.build(), config.levels
+                    self.levels = config.levels
 
         except requests.exceptions.RequestException:
             pass

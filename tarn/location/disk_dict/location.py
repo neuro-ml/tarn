@@ -8,24 +8,32 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import ContextManager, Iterable, Optional, Sequence, Tuple, Union
 
-from ..compat import Self, copy_file, remove_file, rmtree
-from ..config import StorageConfig, init_storage, load_config, root_params
-from ..digest import key_to_relative
-from ..exceptions import CollisionError, StorageCorruption
-from ..interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
-from ..tools import Locker, SizeTracker, UsageTracker
-from ..tools.labels import LabelsStorage
-from ..utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
-from .interface import Meta, Writable
+from ...compat import Self, copy_file, remove_file, rmtree
+from ...digest import key_to_relative
+from ...exceptions import CollisionError, StorageCorruption
+from ...interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
+from ...tools import Locker, SizeTracker, UsageTracker, LabelsStorage
+from ...utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
+from ..interface import Meta, Writable
+from .config import StorageConfig, init_storage, load_config, root_params, CONFIG_NAME
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]
 
 
 class DiskDict(Writable):
-    def __init__(self, root: PathOrStr):
+    def __init__(self, root: PathOrStr, levels: Optional[Sequence[int]] = None):
         root = Path(root)
-        config = load_config(root)
+        config = root / CONFIG_NAME
+        if not config.exists():
+            config = StorageConfig(levels=levels or [1, -1])
+            init_storage(config, root, exist_ok=True)
+        else:
+            config = load_config(root)
+
+        if levels is not None and tuple(config.levels) != tuple(levels):
+            raise ValueError(f"The passed levels (levels) don't match with the ones from the config ({config.levels}).")
+
         self.levels = config.levels
         # TODO: deprecate
         self.hash = config.hash.build() if config.hash is not None else None
@@ -47,10 +55,6 @@ class DiskDict(Writable):
         self.labels: LabelsStorage = config.make_labels(labels_folder)
         self.min_free_size = config.free_disk_size
         self.max_size = config.max_size
-
-    @classmethod
-    def create(cls, root: PathOrStr, levels: Sequence[int]):
-        init_storage(StorageConfig(levels=levels), root)
 
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         tools = self.root / 'tools'
@@ -169,6 +173,7 @@ class DiskDict(Writable):
             return True
 
     def _key_to_path(self, key: Key):
+        assert key, 'The key must be non-empty'
         return self.root / key_to_relative(key, self.levels)
 
     def _writeable(self):
@@ -181,6 +186,12 @@ class DiskDict(Writable):
             result = result and self.size_tracker.get(self.root) <= self.max_size
 
         return result
+
+    def __reduce__(self):
+        return type(self), (self.root, self.levels)
+
+    def __eq__(self, other):
+        return isinstance(other, DiskDict) and self.__reduce__() == other.__reduce__()
 
 
 class DiskDictMeta(Meta):

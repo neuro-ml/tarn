@@ -10,7 +10,7 @@ from ..exceptions import CollisionError, DeserializationError, ReadError, Storag
 from ..interface import Key, MaybeLabels, PathOrStr, Value
 from ..location import Level, Location
 from ..pickler import PREVIOUS_VERSIONS, dumps
-from ..serializers import Serializer, SerializerError
+from ..serializers import Serializer, SerializerError, DefaultSerializer
 from ..utils import value_to_buffer
 from .hash_key import HashKeyStorage, LocationsLike, resolve_location
 
@@ -31,7 +31,7 @@ class PickleKeyStorage:
             self,
             index: LocationsLike,
             storage: Union[HashKeyStorage, LocationsLike],
-            serializer: Serializer,
+            serializer: Serializer = DefaultSerializer,
             algorithm: Optional[Type[HashAlgorithm]] = None,
             stable_objects: Collection = (),
             unstable_objects: Collection = (),
@@ -99,7 +99,8 @@ class PickleKeyStorage:
                     return None
         except CollisionError as e:
             with self.index.read(digest, return_labels=False) as v:
-                raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}') from e
+                with value_to_buffer(v) as v:
+                    raise CollisionError(f'Old mapping: {v.read()}. New mapping: {mapping}') from e
         return digest
 
     def _read_for_digest(self, digest):

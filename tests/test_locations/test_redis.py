@@ -1,17 +1,15 @@
 from hashlib import blake2b
 from pathlib import Path
 
+import cloudpickle
 import pytest
-import redis
 
-from tarn import HashKeyStorage, ReadError
-from tarn.location.redis import RedisLocation
+from tarn import HashKeyStorage, ReadError, RedisLocation
 
 
 @pytest.mark.redis
 def test_storage_redis(redis_hostname):
-    redis_instance = redis.Redis(redis_hostname)
-    location = RedisLocation(redis_instance, prefix='___test___')
+    location = RedisLocation(redis_hostname, prefix='___test___')
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(Path(__file__), labels=('IRA', 'LABS'))
     key = storage.write(Path(__file__), labels=('IRA1', 'LABS'))
@@ -33,3 +31,13 @@ def test_storage_redis(redis_hostname):
     location.delete(key)
     location.delete(b'123456')
     assert keys_amount - len(list(location.contents())) == 2
+
+
+@pytest.mark.redis
+def test_redis_pickle(redis_hostname):
+    redis = RedisLocation(redis_hostname, prefix=b':')
+    x = cloudpickle.loads(cloudpickle.dumps(redis))
+    xx = cloudpickle.loads(cloudpickle.dumps(x))
+
+    assert x.redis.get_connection_kwargs() == xx.redis.get_connection_kwargs()
+    assert x.prefix == xx.prefix == b':'

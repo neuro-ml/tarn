@@ -3,13 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from tarn import HashKeyStorage, ReadError
-from tarn.location.s3 import S3
+from tarn import S3, HashKeyStorage, ReadError
 
 
 @pytest.mark.s3
-def test_storage_s3(s3_client, bucket_name):
-    location = S3(s3_client, bucket_name)
+def test_storage_s3(s3_kwargs):
+    location = S3(**s3_kwargs)
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(Path(__file__), labels=('IRA', 'LABS'))
     key = storage.write(Path(__file__), labels=('IRA', 'LABS', 'IRA1'))

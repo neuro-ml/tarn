@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
+from typing import Any, AnyStr, ContextManager, Iterable, Optional, Tuple
 
 from redis import Redis
 
@@ -12,12 +12,21 @@ from .interface import Writable
 
 
 class RedisLocation(Writable):
-    def __init__(self, redis: Union[Redis, str], prefix: str = ''):
-        if isinstance(redis, str):
-            redis = Redis.from_url(redis)
+    def __init__(self, *args, prefix: AnyStr = b'', **kwargs):
+        # TODO: legacy mode
+        if len(args) == 2 and isinstance(args[1], str) and not prefix:
+            *args, prefix = args
+
+        # in this case from_url has the same effect + we get increased usability
+        if len(args) == 1 and _is_url(args[0]):
+            redis = Redis.from_url(args[0], **kwargs)
+        else:
+            redis = Redis(*args, **kwargs)
+
+        if isinstance(prefix, str):
+            prefix = prefix.encode()
         self.redis = redis
-        self.prefix = prefix.encode('utf-8')
-        self.hash = None
+        self.prefix = prefix
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         for raw_key in self.redis.scan_iter(match=self.prefix + b'*'):
@@ -98,6 +107,24 @@ class RedisLocation(Writable):
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.delete(content_key, labels_key, usage_date_key)
         return True
+
+    @classmethod
+    def _from_args(cls, prefix, kwargs):
+        return cls(prefix=prefix, **kwargs)
+
+    def __reduce__(self):
+        return self._from_args, (self.prefix, self.redis.get_connection_kwargs())
+
+    def __eq__(self, other):
+        return isinstance(other, RedisLocation) and self.__reduce__() == other.__reduce__()
+
+
+def _is_url(url):
+    return (
+            url.startswith("redis://")
+            or url.startswith("rediss://")
+            or url.startswith("unix://")
+    )
 
 
 class RedisMeta(Meta):

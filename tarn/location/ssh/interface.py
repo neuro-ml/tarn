@@ -1,5 +1,6 @@
 import socket
 import tempfile
+from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
 from typing import ContextManager, Iterable, Sequence, Tuple, Union
@@ -8,20 +9,21 @@ import paramiko
 from paramiko import AuthenticationException, SSHClient, SSHException
 from paramiko.config import SSH_PORT, SSHConfig
 from paramiko.ssh_exception import NoValidConnectionsError
-from scp import SCPClient, SCPException
 
-from ..compat import Self, remove_file, rmtree
-from ..config import load_config
-from ..digest import key_to_relative
-from ..interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
-from .interface import Location
+from ...compat import Self, remove_file, rmtree
+from ...digest import key_to_relative
+from ...interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
+from ..interface import Location
+from ..disk_dict.config import load_config
 
 
 class UnknownHostException(SSHException):
     pass
 
 
-class SCP(Location):
+class SSHRemote(Location, ABC):
+    exceptions = ()
+
     def __init__(self, hostname: str, root: PathOrStr, port: int = SSH_PORT, username: str = None, password: str = None,
                  key: Union[Path, Sequence[Path]] = ()):
         ssh = SSHClient()
@@ -46,22 +48,26 @@ class SCP(Location):
         self.hostname, self.port, self.username, self.password, self.key = hostname, port, username, password, key
         self.root = Path(root)
         self.ssh = ssh
-        self.levels = self.hash = None
+        self.levels = None
+
+    @abstractmethod
+    def _client(self) -> ContextManager:
+        pass
 
     def __reduce__(self):
         return self.__class__, (self.hostname, self.root, self.port, self.username, self.password, self.key)
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
-        with self._connect() as scp:
-            if not scp:
+        with self._connect() as client:
+            if not client:
                 yield
                 return
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 source = Path(temp_dir) / 'source'
                 try:
-                    scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
+                    client.get(str(self.root / key_to_relative(key, self.levels)), str(source))
                     if not source.exists():
                         yield None
                     else:
@@ -80,12 +86,12 @@ class SCP(Location):
                                 yield source
                             remove_file(source)
 
-                except (SCPException, socket.timeout, SSHException):
+                except (*self.exceptions, socket.timeout, SSHException):
                     yield None
 
     def read_batch(self, keys: Keys) -> Iterable[Tuple[Key, Union[None, Tuple[Value, MaybeLabels]]]]:
-        with self._connect() as scp:
-            if scp is None:
+        with self._connect() as client:
+            if client is None:
                 for key in keys:
                     yield key, None
                 return
@@ -95,7 +101,7 @@ class SCP(Location):
                 source = Path(temp_dir) / 'source'
                 for key in keys:
                     try:
-                        scp.get(str(self.root / key_to_relative(key, self.levels)), str(source), recursive=True)
+                        client.get(str(self.root / key_to_relative(key, self.levels)), str(source))
                         if source.exists():
                             # TODO: legacy
                             if source.is_dir():
@@ -109,7 +115,7 @@ class SCP(Location):
                         else:
                             yield key, None
 
-                    except (SCPException, socket.timeout, SSHException):
+                    except (*self.exceptions, socket.timeout, SSHException):
                         yield key, None
 
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
@@ -117,7 +123,7 @@ class SCP(Location):
         return []
 
     @contextmanager
-    def _connect(self) -> SCPClient:
+    def _connect(self):
         try:
             self.ssh.connect(
                 self.hostname, self.port, self.username, self.password, key_filename=self.key,
@@ -132,24 +138,24 @@ class SCP(Location):
             return
 
         try:
-            with SCPClient(self.ssh.get_transport()) as scp:
-                if not self._get_config(scp):
+            with self._client() as client:
+                if not self._get_config(client):
                     yield None
                 else:
-                    yield scp
+                    yield client
 
         finally:
             self.ssh.close()
 
-    def _get_config(self, scp):
+    def _get_config(self, client):
         try:
             if self.levels is None:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     temp = Path(temp_dir) / 'config.yml'
-                    scp.get(str(self.root / 'config.yml'), str(temp))
+                    client.get(str(self.root / 'config.yml'), str(temp))
                     self.levels = load_config(temp_dir).levels
 
             return True
 
-        except SCPException:
+        except self.exceptions:
             return False

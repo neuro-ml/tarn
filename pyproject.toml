@@ -1,7 +1,7 @@
 [project]
 name = 'tarn'
 dynamic = ['version', 'dependencies']
-description = 'A hashmap-based storage on local and remote disks'
+description = 'A generic framework for key-value storage'
 readme = 'README.md'
 requires-python = '>=3.7'
 license = { file = 'LICENSE' }
@@ -11,7 +11,7 @@ authors = [
     { name = 'Talgat', email = 't.saparov@ira-labs.com' },
 ]
 classifiers = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'License :: OSI Approved :: Apache Software License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.6',
@@ -38,6 +38,14 @@ include = ['tarn']
 [tool.setuptools.dynamic]
 version = { attr = 'tarn.__version__.__version__' }
 dependencies = { file = 'requirements.txt' }
+
+[tool.pytest.ini_options]
+markers = [
+    'redis: requires a redis server',
+    'nginx: requires an nginx server',
+    'ssh: requires an ssh connection',
+    's3: requires a s3 client',
+]
 
 [tool.flake8]
 # W503: line break before binary operator is actually considered best-practice

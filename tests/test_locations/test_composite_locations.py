@@ -1,16 +1,14 @@
 from io import BytesIO
 
 import pytest
-import redis
 
-from tarn.location import Fanout, Levels, RedisLocation, SmallLocation
+from tarn import Fanout, Levels, RedisLocation, Small
 
 
 @pytest.mark.redis
 def test_buffer_exhaustion(redis_hostname):
-    redis_instance = redis.Redis(redis_hostname)
-    big = RedisLocation(redis_instance)
-    small = SmallLocation(RedisLocation(redis_instance), 5)
+    big = RedisLocation(redis_hostname)
+    small = Small(RedisLocation(redis_hostname), 5)
     levels = Levels(small, big)
     fanout = Fanout(small, big)
     key = b'1234567'

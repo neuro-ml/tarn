@@ -23,7 +23,7 @@ def test_storage_fixture(storage_factory):
 
 def test_read_only(random_disk_dict):
     location = random_disk_dict
-    key, value = b'0' * sum(location.levels), Path(__file__)
+    key, value = b'0' * 100, Path(__file__)
     # neither during write
     with location.write(key, value, None) as result:
         assert result.read_bytes() == value.read_bytes()
@@ -103,7 +103,7 @@ def test_layers(temp_dir):
 
 
 def test_process_kill(random_disk_dict):
-    key = b'\x00' * sum(random_disk_dict.levels)
+    key = b'\x00' * 100
     total_size = 100 * 1024 ** 2
     root = random_disk_dict.root
 
