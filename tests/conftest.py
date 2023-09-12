@@ -120,6 +120,7 @@ def s3_kwargs(inside_ci, bucket_name):
     if inside_ci:
         s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
         kwargs = {
+            'service_name': 's3',
             's3_client_or_url': 'http://127.0.0.1:8001',
             'aws_access_key_id': 'admin',
             'aws_secret_access_key': 'adminadminadminadmin',
@@ -128,6 +129,7 @@ def s3_kwargs(inside_ci, bucket_name):
     else:
         s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
         kwargs = {
+            'service_name': 's3',
             's3_client_or_url': 'http://10.0.1.2:11354',
             'bucket_name': bucket_name,
         }
