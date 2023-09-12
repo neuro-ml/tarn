@@ -23,10 +23,6 @@ class S3(Writable):
             self.s3 = boto3.client(endpoint_url=s3_client_or_url, **kwargs)
         else:
             self.s3 = s3_client_or_url
-        try:
-            self.s3.head_bucket(Bucket=bucket_name)
-        except ClientError:
-            self.s3.create_bucket(Bucket=bucket_name)
         self._s3_client_or_url = s3_client_or_url
         self._kwargs = kwargs
 

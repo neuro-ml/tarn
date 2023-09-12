@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+import boto3
 import pytest
 
 from tarn import DiskDict, HashKeyStorage, PickleKeyStorage
@@ -116,15 +117,23 @@ def bucket_name():
 @pytest.fixture
 def s3_kwargs(inside_ci, bucket_name):
     if inside_ci:
-        return {
+        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
+        kwargs = {
             'service_name': 's3',
             's3_client_or_url': 'http://127.0.0.1:8001',
             'aws_access_key_id': 'admin',
             'aws_secret_access_key': 'adminadminadminadmin',
             'bucket_name': bucket_name,
         }
-    return {
-        'service_name': 's3',
-        's3_client_or_url': 'http://10.0.1.2:11354',
-        'bucket_name': bucket_name,
-    }
+    else:
+        s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
+        kwargs = {
+            'service_name': 's3',
+            's3_client_or_url': 'http://10.0.1.2:11354',
+            'bucket_name': bucket_name,
+        }
+    try:
+        s3.head_bucket(Bucket=bucket_name)
+    except ClientError:
+        s3.create_bucket(Bucket=bucket_name)
+    return kwargs
