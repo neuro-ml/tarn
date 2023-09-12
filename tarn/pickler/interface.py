@@ -88,8 +88,8 @@ class PortablePickler(Pickler):
 
         try:
             return super().save(obj, *args, **kwargs)
-        except PickleError as e:
-            raise PickleError(str(e)) from None
+#        except PickleError as e:
+#            raise PickleError(str(e)) from None
         except BaseException as e:
             raise PickleError(f'Exception "{e.__class__.__name__}: {e}" '
                               f'while pickling object {obj}') from None

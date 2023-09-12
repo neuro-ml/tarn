@@ -17,9 +17,15 @@ class RedisLocation(Writable):
         if len(args) == 2 and isinstance(args[1], str) and not prefix:
             *args, prefix = args
 
+        # in this case from_url has the same effect + we get increased usability
+        if len(args) == 1 and _is_url(args[0]):
+            redis = Redis.from_url(args[0], **kwargs)
+        else:
+            redis = Redis(*args, **kwargs)
+
         if isinstance(prefix, str):
             prefix = prefix.encode()
-        self.redis = Redis(*args, **kwargs)
+        self.redis = redis
         self.prefix = prefix
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
@@ -111,6 +117,14 @@ class RedisLocation(Writable):
 
     def __eq__(self, other):
         return isinstance(other, RedisLocation) and self.__reduce__() == other.__reduce__()
+
+
+def _is_url(url):
+    return (
+            url.startswith("redis://")
+            or url.startswith("rediss://")
+            or url.startswith("unix://")
+    )
 
 
 class RedisMeta(Meta):
