@@ -12,15 +12,14 @@ from .interface import Writable
 
 
 class RedisLocation(Writable):
-    def __init__(self, *redis_or_args, prefix: AnyStr = '', **kwargs):
-        if len(redis_or_args) == 1 and isinstance(redis_or_args[0], Redis):
-            assert not kwargs, kwargs
-            redis, = redis_or_args
-        else:
-            redis = Redis(*redis_or_args, **kwargs)
+    def __init__(self, *args, prefix: AnyStr = b'', **kwargs):
+        # TODO: legacy mode
+        if len(args) == 2 and isinstance(args[1], str) and not prefix:
+            *args, prefix = args
+
         if isinstance(prefix, str):
             prefix = prefix.encode()
-        self.redis = redis
+        self.redis = Redis(*args, **kwargs)
         self.prefix = prefix
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
