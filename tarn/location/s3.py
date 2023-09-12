@@ -165,12 +165,12 @@ class S3(Writable):
         return [{'Key': key, 'Value': value} for key, value in tag_dict.items()]
 
     @classmethod
-    def from_args(cls, s3_client_or_url, bucket_name, kwargs):
+    def _from_args(cls, s3_client_or_url, bucket_name, kwargs):
         return cls(s3_client_or_url, bucket_name, **kwargs)
 
     def __reduce__(self):
         if isinstance(self._s3_client_or_url, str):
-            return self.from_args, (self._s3_client_or_url, self.bucket, self._kwargs)
+            return self._from_args, (self._s3_client_or_url, self.bucket, self._kwargs)
         raise PicklingError('Cannot pickle S3Client')
 
     def __eq__(self, other):
