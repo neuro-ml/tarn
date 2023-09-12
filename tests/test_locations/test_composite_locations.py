@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 import redis
 
-from tarn.location import Fanout, Levels, RedisLocation, Small
+from tarn import Fanout, Levels, RedisLocation, Small
 
 
 @pytest.mark.redis

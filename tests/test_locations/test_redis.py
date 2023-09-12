@@ -5,8 +5,7 @@ import cloudpickle
 import pytest
 import redis
 
-from tarn import HashKeyStorage, ReadError
-from tarn.location.redis import RedisLocation
+from tarn import HashKeyStorage, ReadError, RedisLocation
 
 
 @pytest.mark.redis

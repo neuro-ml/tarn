@@ -4,8 +4,7 @@ from pathlib import Path
 import pytest
 import redis
 
-from tarn import HashKeyStorage, ReadError
-from tarn.location import RedisLocation, Small
+from tarn import HashKeyStorage, ReadError, RedisLocation, Small
 
 
 @pytest.mark.redis

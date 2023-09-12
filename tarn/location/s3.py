@@ -2,6 +2,7 @@ import warnings
 from contextlib import contextmanager
 from datetime import datetime
 from io import SEEK_CUR, SEEK_SET
+from pickle import PicklingError
 from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
 
 import boto3
@@ -22,6 +23,12 @@ class S3(Writable):
             self.s3 = boto3.client(endpoint_url=s3_client_or_url, **kwargs)
         else:
             self.s3 = s3_client_or_url
+        try:
+            self.s3.head_bucket(Bucket=bucket_name)
+        except ClientError:
+            self.s3.create_bucket(Bucket=bucket_name)
+        self._s3_client_or_url = s3_client_or_url
+        self._kwargs = kwargs
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         paginator = self.s3.get_paginator('list_objects_v2')
@@ -160,6 +167,18 @@ class S3(Writable):
     @staticmethod
     def _dict_to_tags(tag_dict: Mapping[str, str]) -> Iterable[Mapping[str, str]]:
         return [{'Key': key, 'Value': value} for key, value in tag_dict.items()]
+
+    @classmethod
+    def from_args(cls, s3_client_or_url, bucket_name, kwargs):
+        return cls(s3_client_or_url, bucket_name, **kwargs)
+
+    def __reduce__(self):
+        if isinstance(self._s3_client_or_url, str):
+            return self.from_args, (self._s3_client_or_url, self.bucket, self._kwargs)
+        raise PicklingError('Cannot pickle S3Client')
+
+    def __eq__(self, other):
+        return isinstance(other, S3) and self.__reduce__() == other.__reduce__()
 
 
 class StreamingBodyBuffer(BinaryIO):
