@@ -3,15 +3,13 @@ from pathlib import Path
 
 import cloudpickle
 import pytest
-import redis
 
 from tarn import HashKeyStorage, ReadError, RedisLocation
 
 
 @pytest.mark.redis
 def test_storage_redis(redis_hostname):
-    redis_instance = redis.Redis(redis_hostname)
-    location = RedisLocation(redis_instance, prefix='___test___')
+    location = RedisLocation(redis_hostname, prefix='___test___')
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(Path(__file__), labels=('IRA', 'LABS'))
     key = storage.write(Path(__file__), labels=('IRA1', 'LABS'))
