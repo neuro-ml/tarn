@@ -146,8 +146,6 @@ class S3(Writable):
         return None
 
     def _get_buffer(self, path):
-        # with self.s3.get_object(Bucket=self.bucket, Key=path)['Body'] as obj_body:
-        #     assert False, obj_body.read()
         return StreamingBodyBuffer(self.s3.get_object, Bucket=self.bucket, Key=path)
 
     def _key_to_path(self, key: Key):
