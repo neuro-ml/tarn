@@ -19,7 +19,7 @@ class S3(Location):
         if s3fs_or_url is None:
             self.s3 = S3FileSystem(**kwargs)
         elif isinstance(s3fs_or_url, str):
-            self.s3 = S3FileSystem(endpoint_url=s3fs_or_url, **kwargs)
+            self.s3 = S3FileSystem(client_kwargs={'endpoint_url': s3fs_or_url}, **kwargs)
         else:
             assert isinstance(s3fs_or_url, S3FileSystem), 's3fs_or_url should be either None, or str, or S3FileSystem'
             self.s3 = s3fs_or_url
