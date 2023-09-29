@@ -117,7 +117,11 @@ def bucket_name():
 @pytest.fixture
 def s3_kwargs(inside_ci, bucket_name):
     if inside_ci:
-        s3fs = S3FileSystem(endpoint_url='http://127.0.0.1:8001', key='admin', secret='adminadminadminadmin')
+        s3fs = S3FileSystem(
+            client_kwargs={'endpoint_url': 'http://127.0.0.1:8001'},
+            key='admin',
+            secret='adminadminadminadmin',
+        )
         kwargs = {
             's3fs_or_url': 'http://127.0.0.1:8001',
             'key': 'admin',
