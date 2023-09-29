@@ -27,7 +27,7 @@ class S3(Location):
         self._kwargs = kwargs
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
-        for directory, _, files in self.s3.walk(self.bucket, on_error='raise'):
+        for directory, _, files in self.s3.walk(self.bucket):
             for file in files:
                 path = f'{directory}/{file}'
                 key = self._path_to_key(path)
