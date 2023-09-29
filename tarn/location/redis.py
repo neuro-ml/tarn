@@ -8,10 +8,10 @@ from redis import Redis
 from ..digest import value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, MaybeLabels, Meta, Value
-from .interface import Writable
+from .interface import Location
 
 
-class RedisLocation(Writable):
+class RedisLocation(Location):
     def __init__(self, *args, prefix: AnyStr = b'', **kwargs):
         # TODO: legacy mode
         if len(args) == 2 and isinstance(args[1], str) and not prefix:

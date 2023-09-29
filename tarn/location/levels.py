@@ -5,7 +5,7 @@ from typing import ContextManager, Iterable, NamedTuple, Optional, Tuple, Union
 
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
-from ..location import Location, Writable
+from ..location import Location
 from ..utils import is_binary_io
 from .fanout import _get_not_none
 
@@ -17,7 +17,7 @@ class Level(NamedTuple):
     name: Optional[str] = None
 
 
-class Levels(Writable):
+class Levels(Location):
     def __init__(self, *levels: Union[Level, Location]):
         levels = [
             level if isinstance(level, Level) else Level(level, write=True, replicate=True)
@@ -54,29 +54,27 @@ class Levels(Writable):
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         for config in self._levels:
             location = config.location
-            if config.write and isinstance(location, Writable):
-                if is_binary_io(value):
-                    offset = value.tell()
-                leave = False
-                with location.write(key, value, labels) as written:
-                    if written is not None:
-                        # we must leave the loop after the first successful write
-                        leave = True
-                        yield written
-                # but the context manager might have silenced the error, so we need an extra return here
-                if leave:
-                    return
-                if is_binary_io(value) and offset != value.tell():
-                    value.seek(offset)
+            if is_binary_io(value):
+                offset = value.tell()
+            leave = False
+            with location.write(key, value, labels) as written:
+                if written is not None:
+                    # we must leave the loop after the first successful write
+                    leave = True
+                    yield written
+            # but the context manager might have silenced the error, so we need an extra return here
+            if leave:
+                return
+            if is_binary_io(value) and offset != value.tell():
+                value.seek(offset)
 
         yield None
 
     def delete(self, key: Key) -> bool:
         deleted = False
         for config in self._levels:
-            if config.write and isinstance(config.location, Writable):
-                if config.location.delete(key):
-                    deleted = True
+            if config.location.delete(key):
+                deleted = True
 
         return deleted
 
@@ -106,7 +104,7 @@ class Levels(Writable):
     def _replicate(self, key: Key, value: Value, labels: MaybeLabels, index: int):
         for config in islice(self._levels, index):
             location = config.location
-            if config.replicate and isinstance(location, Writable):
+            if config.replicate:
                 if is_binary_io(value):
                     offset = value.tell()
                 with _propagate_exception(location.write(key, value, labels)) as written:

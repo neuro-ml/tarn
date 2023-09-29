@@ -41,15 +41,11 @@ class Location(ABC):
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         pass
 
-
-class Writable(Location, ABC):
-    @abstractmethod
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         pass
 
-    @abstractmethod
     def delete(self, key: Key) -> bool:
-        pass
+        return False
 
 
 Locations = Sequence[Location]

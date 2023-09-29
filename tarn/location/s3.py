@@ -10,10 +10,10 @@ from ..digest import key_to_relative, value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, MaybeLabels, Meta, Value
 from ..utils import match_buffers
-from .interface import Writable
+from .interface import Location
 
 
-class S3(Writable):
+class S3(Location):
     def __init__(self, s3fs_or_url: Optional[Union[S3FileSystem, str]], bucket_name: str, **kwargs):
         self.bucket = bucket_name
         if s3fs_or_url is None:

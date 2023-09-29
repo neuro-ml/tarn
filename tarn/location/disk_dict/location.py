@@ -12,16 +12,16 @@ from ...compat import Self, copy_file, remove_file, rmtree
 from ...digest import key_to_relative
 from ...exceptions import CollisionError, StorageCorruption
 from ...interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
-from ...tools import Locker, SizeTracker, UsageTracker, LabelsStorage
+from ...tools import LabelsStorage, Locker, SizeTracker, UsageTracker
 from ...utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
-from ..interface import Meta, Writable
-from .config import StorageConfig, init_storage, load_config, root_params, CONFIG_NAME
+from ..interface import Location, Meta
+from .config import CONFIG_NAME, StorageConfig, init_storage, load_config, root_params
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]
 
 
-class DiskDict(Writable):
+class DiskDict(Location):
     def __init__(self, root: PathOrStr, levels: Optional[Sequence[int]] = None):
         root = Path(root)
         config = root / CONFIG_NAME

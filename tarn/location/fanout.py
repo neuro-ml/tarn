@@ -4,10 +4,10 @@ from typing import ContextManager, Iterable, Tuple, Union
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, MaybeValue, Meta, Value
 from ..utils import is_binary_io
-from .interface import Location, Writable
+from .interface import Location
 
 
-class Fanout(Writable):
+class Fanout(Location):
     def __init__(self, *locations: Location):
         hashes = _get_not_none(locations, 'hash')
         assert len(hashes) <= 1, hashes
@@ -33,27 +33,25 @@ class Fanout(Writable):
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         for location in self._locations:
-            if isinstance(location, Writable):
-                if is_binary_io(value):
-                    offset = value.tell()
-                leave = False
-                with location.write(key, value, labels) as written:
-                    if written is not None:
-                        leave = True
-                        yield written
-                # see more info on the "leave" trick in `Levels`
-                if leave:
-                    return
-                if is_binary_io(value) and offset != value.tell():
-                    value.seek(offset)
+            if is_binary_io(value):
+                offset = value.tell()
+            leave = False
+            with location.write(key, value, labels) as written:
+                if written is not None:
+                    leave = True
+                    yield written
+            # see more info on the "leave" trick in `Levels`
+            if leave:
+                return
+            if is_binary_io(value) and offset != value.tell():
+                value.seek(offset)
         yield None
 
     def delete(self, key: Key) -> bool:
         deleted = False
         for location in self._locations:
-            if isinstance(location, Writable):
-                if location.delete(key):
-                    deleted = True
+            if location.delete(key):
+                deleted = True
 
         return deleted
 
