@@ -1,14 +1,11 @@
 import warnings
 from contextlib import contextmanager
 from datetime import datetime
-from io import SEEK_CUR, SEEK_SET
 from pickle import PicklingError
-from typing import Any, BinaryIO, ContextManager, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, ContextManager, Iterable, Optional, Tuple, Union
 
-import boto3
-from botocore.exceptions import ClientError, ConnectionError
+from s3fs.core import S3FileSystem
 
-from ..compat import S3Client
 from ..digest import key_to_relative, value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, MaybeLabels, Meta, Value
@@ -17,24 +14,24 @@ from .interface import Writable
 
 
 class S3(Writable):
-    def __init__(self, s3_client_or_url: Union[S3Client, str], bucket_name: str, service_name: str = 's3', **kwargs):
+    def __init__(self, s3fs_or_url: Optional[Union[S3FileSystem, str]], bucket_name: str, **kwargs):
         self.bucket = bucket_name
-        if isinstance(s3_client_or_url, str):
-            self.s3 = boto3.client(service_name=service_name, endpoint_url=s3_client_or_url, **kwargs)
+        if s3fs_or_url is None:
+            self.s3 = S3FileSystem(**kwargs)
+        elif isinstance(s3fs_or_url, str):
+            self.s3 = S3FileSystem(endpoint_url=s3fs_or_url, **kwargs)
         else:
-            self.s3 = s3_client_or_url
-        self._s3_client_or_url = s3_client_or_url
+            assert isinstance(s3fs_or_url, S3FileSystem), 's3fs_or_url should be either None, or str, or S3FileSystem'
+            self.s3 = s3fs_or_url
+        self._s3fs_or_url = s3fs_or_url
         self._kwargs = kwargs
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
-        paginator = self.s3.get_paginator('list_objects_v2')
-        response_iterator = paginator.paginate(Bucket=self.bucket)
-        for response in response_iterator:
-            if 'Contents' in response:
-                for obj in response['Contents']:
-                    path = obj['Key']
-                    key = self._path_to_key(path)
-                    yield key, self, S3Meta(path=path, location=self)
+        for directory, _, files in self.s3.walk(self.bucket, on_error='raise'):
+            for file in files:
+                path = f'{directory}/{file}'
+                key = self._path_to_key(path)
+                yield key, self, S3Meta(path=path, location=self)
 
     @contextmanager
     def read(
@@ -45,21 +42,13 @@ class S3(Writable):
             try:
                 self.update_usage_date(path)
                 if return_labels:
-                    with self._get_buffer(path) as buffer:
+                    with self.s3.open(path, 'rb') as buffer:
                         yield buffer, self.get_labels(path)
                 else:
-                    with self._get_buffer(path) as buffer:
+                    with self.s3.open(path, 'rb') as buffer:
                         yield buffer
 
-            except ClientError as e:
-                if (
-                        e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                        or e.response['Error']['Code'] == 'NoSuchKey'
-                ):  # file doesn't exist
-                    yield
-                else:
-                    raise
-            except ConnectionError:
+            except FileNotFoundError:
                 yield
         except StorageCorruption:
             self.delete(key)
@@ -70,150 +59,79 @@ class S3(Writable):
             path = self._key_to_path(key)
             with value_to_buffer(value) as value:
                 try:
-                    with self._get_buffer(path) as obj_body_buffer:
+                    with self.s3.open(path, 'rb') as buffer:
                         try:
-                            match_buffers(value, obj_body_buffer, context=key.hex())
+                            match_buffers(value, buffer, context=key.hex())
                         except ValueError as e:
                             raise CollisionError(
                                 f'Written value and the new one does not match: {key}'
                             ) from e
                         self.update_labels(path, labels)
                         self.update_usage_date(path)
-                        with self._get_buffer(path) as buffer:
+                        with self.s3.open(path, 'rb') as buffer:
                             yield buffer
                             return
-                except ClientError as e:
-                    if (
-                            e.response['ResponseMetadata']['HTTPStatusCode'] == 404
-                            or e.response['Error']['Code'] == 'NoSuchKey'
-                    ):
-                        self.s3.upload_fileobj(
-                            Bucket=self.bucket, Key=path, Fileobj=value
-                        )
-                        self.update_labels(path, labels)
-                        self.update_usage_date(path)
-                        with self._get_buffer(path) as buffer:
-                            yield buffer
-                            return
-                    else:
-                        raise
-                except ConnectionError:
-                    yield
+                except FileNotFoundError:
+                    with self.s3.open(path, 'wb') as buffer:
+                        buffer.write(value.read())
+                    self.update_labels(path, labels)
+                    self.update_usage_date(path)
+                    with self.s3.open(path, 'rb') as buffer:
+                        yield buffer
+                        return
         except StorageCorruption:
             self.delete(key)
 
     def delete(self, key: Key):
         path = self._key_to_path(key)
-        self.s3.delete_object(Bucket=self.bucket, Key=path)
+        self.s3.delete(path)
         return True
 
     def update_labels(self, path: str, labels: MaybeLabels):
         if labels is not None:
-            tags_dict = self._tags_to_dict(
-                self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
-            )
+            tags_dict = self.s3.get_tags(path)
             tags_dict.update({f'_{label}': f'_{label}' for label in labels})
-            tags = self._dict_to_tags(tags_dict)
-            self.s3.put_object_tagging(
-                Bucket=self.bucket, Key=path, Tagging={'TagSet': tags}
-            )
+            self.s3.put_tags(path, tags_dict)
 
     def get_labels(self, path: str) -> MaybeLabels:
-        tags_dict = self._tags_to_dict(
-            self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
-        )
+        tags_dict = self.s3.get_tags(path)
         return [dict_key[1:] for dict_key in tags_dict if dict_key.startswith('_')]
 
     def update_usage_date(self, path: str):
         try:
-            tags_dict = self._tags_to_dict(
-                self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
-            )
+            tags_dict = self.s3.get_tags(path)
             tags_dict['usage_date'] = str(datetime.now().timestamp())
-            tags = self._dict_to_tags(tags_dict)
-            self.s3.put_object_tagging(
-                Bucket=self.bucket, Key=path, Tagging={'TagSet': tags}
-            )
+            self.s3.put_tags(path, tags_dict)
         except KeyError:
             warnings.warn(f'Cannot update usage date for the key {self._path_to_key(path)}', stacklevel=2)
 
     def get_usage_date(self, path: str) -> Optional[datetime]:
-        tags_dict = self._tags_to_dict(
-            self.s3.get_object_tagging(Bucket=self.bucket, Key=path)['TagSet']
-        )
+        tags_dict = self.s3.get_tags(path)
         if 'usage_date' in tags_dict:
             return datetime.fromtimestamp(float(tags_dict['usage_date']))
         return None
 
-    def _get_buffer(self, path):
-        return StreamingBodyBuffer(self.s3.get_object, Bucket=self.bucket, Key=path)
-
     def _key_to_path(self, key: Key):
-        return str(key_to_relative(key, [2, -1]))
+        return f'{self.bucket}/{str(key_to_relative(key, [2, -1]))}'
 
     def _path_to_key(self, path: str):
-        return bytes.fromhex(path.replace('/', ''))
-
-    @staticmethod
-    def _tags_to_dict(tags: Iterable[Mapping[str, str]]) -> Mapping[str, str]:
-        return {tag['Key']: tag['Value'] for tag in tags}
-
-    @staticmethod
-    def _dict_to_tags(tag_dict: Mapping[str, str]) -> Iterable[Mapping[str, str]]:
-        return [{'Key': key, 'Value': value} for key, value in tag_dict.items()]
+        path = ''.join(path.split('/')[1:])
+        try:
+            return bytes.fromhex(path)
+        except ValueError:
+            assert False, path
 
     @classmethod
-    def _from_args(cls, s3_client_or_url, bucket_name, kwargs):
-        return cls(s3_client_or_url, bucket_name, **kwargs)
+    def _from_args(cls, s3fs_or_url, bucket_name, kwargs):
+        return cls(s3fs_or_url, bucket_name, **kwargs)
 
     def __reduce__(self):
-        if isinstance(self._s3_client_or_url, str):
-            return self._from_args, (self._s3_client_or_url, self.bucket, self._kwargs)
+        if isinstance(self._s3fs_or_url, (str, None)):
+            return self._from_args, (self._s3fs_or_url, self.bucket, self._kwargs)
         raise PicklingError('Cannot pickle S3Client')
 
     def __eq__(self, other):
         return isinstance(other, S3) and self.__reduce__() == other.__reduce__()
-
-
-class StreamingBodyBuffer(BinaryIO):
-    def __init__(self, getter, **kwargs):
-        super().__init__()
-        self.getter, self.kwargs = getter, kwargs
-        self._streaming_body = getter(**kwargs).get('Body')
-
-    def seek(self, offset: int, whence: int = SEEK_SET) -> int:
-        # we can either return to the begining of the stream or do nothing
-        #  everythnig else is too expensive
-        if whence == SEEK_SET:
-            if offset == 0:
-                self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return 0
-            if offset == self.tell():
-                return offset
-
-        if whence == SEEK_CUR:
-            if offset == 0:
-                return self.tell()
-            if offset == -self.tell():
-                self._streaming_body = self.getter(**self.kwargs).get('Body')
-                return 0
-
-        raise NotImplementedError('Cannot seek anywhere but the begining of the stream')
-
-    def seekable(self):
-        return True
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
-    def __getattribute__(self, attr) -> Any:
-        if attr in ('seek', 'getter', 'kwargs', '__enter__', '__exit__'):
-            return super().__getattribute__(attr)
-        streaming_body = super().__getattribute__('_streaming_body')
-        return getattr(streaming_body, attr)
 
 
 class S3Meta(Meta):

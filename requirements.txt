@@ -8,4 +8,4 @@ pyyaml
 humanfriendly
 pydantic<2.0.0
 requests
-boto3>=1.23.0,<2.0.0
+s3fs>=2023.9.2
