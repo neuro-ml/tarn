@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tarn import DiskDict, Fanout, Level, Levels, StorageCorruption
+from tarn import DiskDict, Fanout, Level, Levels, Location, StorageCorruption
 
 
 def _mkdir(x):
