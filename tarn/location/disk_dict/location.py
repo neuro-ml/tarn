@@ -65,7 +65,7 @@ class DiskDict(Location):
 
             key = bytes.fromhex(''.join(file.relative_to(self.root).parts))
             with self.locker.read(key):
-                yield key, self, str(self.root)
+                yield key, self, DiskDictMeta(key, self.usage_tracker, self.labels)
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
@@ -202,7 +202,7 @@ class DiskDict(Location):
 
 
 class DiskDictMeta(Meta):
-    def __init__(self, key, usage, labels):
+    def __init__(self, key: Key, usage: UsageTracker, labels: LabelsStorage):
         self._key, self._usage, self._labels = key, usage, labels
 
     @property
