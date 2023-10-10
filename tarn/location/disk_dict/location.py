@@ -77,7 +77,7 @@ class DiskDict(Location):
                 if file.is_dir():
                     file = file / 'data'
 
-                self.usage_tracker.update(key)
+                self.touch(key)
                 try:
                     if return_labels:
                         yield file, self.labels.get(key)
@@ -142,7 +142,7 @@ class DiskDict(Location):
 
                 # metadata
                 self.size_tracker.inc(get_size(file))
-                self.usage_tracker.update(key)
+                self.touch(key)
                 self.labels.update(key, labels)
 
                 yield file
@@ -171,6 +171,13 @@ class DiskDict(Location):
             self.labels.delete(key)
 
             return True
+
+    def touch(self, key: Key) -> bool:
+        file = self._key_to_path(key)
+        if not file.exists():
+            return False
+        self.usage_tracker.update(key)
+        return True
 
     def _key_to_path(self, key: Key):
         assert key, 'The key must be non-empty'

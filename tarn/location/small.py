@@ -38,6 +38,9 @@ class Small(Location):
     def delete(self, key: Key) -> bool:
         return self.location.delete(key)
 
+    def touch(self, key: Key) -> bool:
+        return self.location.touch(key)
+
 
 # `read` is only guaranteed to return _at most_ n bytes, so we might need several calls
 def read_at_least(buffer, n):

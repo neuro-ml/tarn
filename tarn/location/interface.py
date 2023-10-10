@@ -47,5 +47,11 @@ class Location(ABC):
     def delete(self, key: Key) -> bool:
         return False
 
+    def touch(self, key: Key) -> bool:
+        """
+        Update usage date for a given `key`
+        """
+        return False
+
 
 Locations = Sequence[Location]

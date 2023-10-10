@@ -40,10 +40,10 @@ class S3(Location):
         try:
             path = self._key_to_path(key)
             try:
-                self.update_usage_date(path)
+                self.touch(key)
                 if return_labels:
                     with self.s3.open(path, 'rb') as buffer:
-                        yield buffer, self.get_labels(path)
+                        yield buffer, self._get_labels(path)
                 else:
                     with self.s3.open(path, 'rb') as buffer:
                         yield buffer
@@ -66,16 +66,16 @@ class S3(Location):
                             raise CollisionError(
                                 f'Written value and the new one does not match: {key}'
                             ) from e
-                        self.update_labels(path, labels)
-                        self.update_usage_date(path)
+                        self._update_labels(path, labels)
+                        self.touch(key)
                         with self.s3.open(path, 'rb') as buffer:
                             yield buffer
                             return
                 except FileNotFoundError:
                     with self.s3.open(path, 'wb') as buffer:
                         buffer.write(value.read())
-                    self.update_labels(path, labels)
-                    self.update_usage_date(path)
+                    self._update_labels(path, labels)
+                    self.touch(key)
                     with self.s3.open(path, 'rb') as buffer:
                         yield buffer
                         return
@@ -87,25 +87,27 @@ class S3(Location):
         self.s3.delete(path)
         return True
 
-    def update_labels(self, path: str, labels: MaybeLabels):
+    def touch(self, key: Key):
+        try:
+            path = self._key_to_path(key)
+            tags_dict = self.s3.get_tags(path)
+            tags_dict['usage_date'] = str(datetime.now().timestamp())
+            self.s3.put_tags(path, tags_dict)
+            return True
+        except FileNotFoundError:
+            return False
+
+    def _update_labels(self, path: str, labels: MaybeLabels):
         if labels is not None:
             tags_dict = self.s3.get_tags(path)
             tags_dict.update({f'_{label}': f'_{label}' for label in labels})
             self.s3.put_tags(path, tags_dict)
 
-    def get_labels(self, path: str) -> MaybeLabels:
+    def _get_labels(self, path: str) -> MaybeLabels:
         tags_dict = self.s3.get_tags(path)
         return [dict_key[1:] for dict_key in tags_dict if dict_key.startswith('_')]
 
-    def update_usage_date(self, path: str):
-        try:
-            tags_dict = self.s3.get_tags(path)
-            tags_dict['usage_date'] = str(datetime.now().timestamp())
-            self.s3.put_tags(path, tags_dict)
-        except KeyError:
-            warnings.warn(f'Cannot update usage date for the key {self._path_to_key(path)}', stacklevel=2)
-
-    def get_usage_date(self, path: str) -> Optional[datetime]:
+    def _get_usage_date(self, path: str) -> Optional[datetime]:
         tags_dict = self.s3.get_tags(path)
         if 'usage_date' in tags_dict:
             return datetime.fromtimestamp(float(tags_dict['usage_date']))
@@ -135,16 +137,16 @@ class S3(Location):
 
 
 class S3Meta(Meta):
-    def __init__(self, path, location):
+    def __init__(self, path: str, location: S3):
         self._path, self._location = path, location
 
     @property
     def last_used(self) -> Optional[datetime]:
-        return self._location.get_usage_date(self._path)
+        return self._location._get_usage_date(self._path)
 
     @property
     def labels(self) -> MaybeLabels:
-        return self._location.get_labels(self._path)
+        return self._location._get_labels(self._path)
 
     def __str__(self):
         return f'{self.last_used}, {self.labels}'

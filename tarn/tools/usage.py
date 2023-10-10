@@ -21,7 +21,7 @@ class UsageTracker(ABC):
 
     @abstractmethod
     def get(self, key: Key) -> Optional[datetime]:
-        """ Deletes the usage time for a given `key` """
+        """ Get the usage time for a given `key` """
 
     @abstractmethod
     def delete(self, key: Key):

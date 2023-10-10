@@ -76,6 +76,12 @@ class Fanout(Location):
         for location in self._locations:
             yield from location.contents()
 
+    def touch(self, key: Key):
+        touched = False
+        for location in self._locations:
+            touched = location.touch(key)
+        return touched
+
 
 def _get_not_none(seq, name):
     result = set()

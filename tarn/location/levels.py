@@ -100,6 +100,12 @@ class Levels(Location):
         for level in self._levels:
             yield from level.location.contents()
 
+    def touch(self, key: Key):
+        touched = False
+        for level in self._levels:
+            touched = level.location.touch(key)
+        return touched
+
     @contextmanager
     def _replicate(self, key: Key, value: Value, labels: MaybeLabels, index: int):
         for config in islice(self._levels, index):
