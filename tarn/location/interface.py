@@ -41,16 +41,26 @@ class Location(ABC):
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         pass
 
+    @abstractmethod
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         pass
 
+    @abstractmethod
     def delete(self, key: Key) -> bool:
-        return False
+        pass
 
     def touch(self, key: Key) -> bool:
         """
         Update usage date for a given `key`
         """
+        return False
+
+
+class ReadOnly(Location):
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
+        yield None
+
+    def delete(self, key: Key) -> bool:
         return False
 
 

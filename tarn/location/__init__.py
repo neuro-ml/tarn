@@ -1,6 +1,6 @@
 from .disk_dict import DiskDict
 from .fanout import Fanout
-from .interface import Location
+from .interface import Location, ReadOnly
 from .levels import Level, Levels
 from .nginx import Nginx
 from .redis import RedisLocation

@@ -13,15 +13,15 @@ from paramiko.ssh_exception import NoValidConnectionsError
 from ...compat import Self, remove_file, rmtree
 from ...digest import key_to_relative
 from ...interface import Key, Keys, MaybeLabels, Meta, PathOrStr, Value
-from ..interface import Location
 from ..disk_dict.config import load_config
+from ..interface import ReadOnly
 
 
 class UnknownHostException(SSHException):
     pass
 
 
-class SSHRemote(Location, ABC):
+class SSHRemote(ReadOnly, ABC):
     exceptions = ()
 
     def __init__(self, hostname: str, root: PathOrStr, port: int = SSH_PORT, username: str = None, password: str = None,
