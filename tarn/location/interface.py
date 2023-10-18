@@ -49,11 +49,12 @@ class Location(ABC):
     def delete(self, key: Key) -> bool:
         pass
 
+    @abstractmethod
     def touch(self, key: Key) -> bool:
         """
         Update usage date for a given `key`
         """
-        return False
+        pass
 
 
 class ReadOnly(Location):
@@ -61,6 +62,9 @@ class ReadOnly(Location):
         yield None
 
     def delete(self, key: Key) -> bool:
+        return False
+
+    def touch(self, key: Key) -> bool:
         return False
 
 
