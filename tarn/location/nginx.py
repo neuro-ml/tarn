@@ -8,10 +8,10 @@ from ..compat import Self
 from ..config import load_config_buffer
 from ..digest import key_to_relative
 from ..interface import MaybeLabels, Meta
-from .interface import Key, Keys, Location, MaybeValue
+from .interface import Key, Keys, MaybeValue, ReadOnly
 
 
-class Nginx(Location):
+class Nginx(ReadOnly):
     def __init__(self, url: str):
         if not url.endswith('/'):
             url += '/'

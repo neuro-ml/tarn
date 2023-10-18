@@ -5,11 +5,11 @@ from typing import ContextManager, Iterable, Tuple, Union
 from ..compat import Self
 from ..interface import Key, Keys, MaybeLabels, Value
 from ..utils import value_to_buffer
-from .interface import Meta, Writable
+from .interface import Location, Meta
 
 
-class Small(Writable):
-    def __init__(self, location: Writable, max_size: int):
+class Small(Location):
+    def __init__(self, location: Location, max_size: int):
         self.location = location
         self.max_size = max_size
         # TODO: remove
@@ -37,6 +37,9 @@ class Small(Writable):
 
     def delete(self, key: Key) -> bool:
         return self.location.delete(key)
+
+    def touch(self, key: Key) -> bool:
+        return self.location.touch(key)
 
 
 # `read` is only guaranteed to return _at most_ n bytes, so we might need several calls

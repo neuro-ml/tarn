@@ -7,7 +7,7 @@ from .interface import SSHRemote
 
 
 class SFTP(SSHRemote):
-    exceptions = ()
+    exceptions = (FileNotFoundError, )
 
     @contextmanager
     def _client(self) -> ContextManager[SFTPClient]:

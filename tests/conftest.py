@@ -4,9 +4,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-import boto3
 import pytest
-from botocore.exceptions import ClientError
+from s3fs import S3FileSystem
 
 from tarn import DiskDict, HashKeyStorage, PickleKeyStorage
 from tarn.config import StorageConfig, init_storage
@@ -118,23 +117,22 @@ def bucket_name():
 @pytest.fixture
 def s3_kwargs(inside_ci, bucket_name):
     if inside_ci:
-        s3 = boto3.client('s3', endpoint_url='http://127.0.0.1:8001', aws_access_key_id='admin', aws_secret_access_key='adminadminadminadmin')
+        s3fs = S3FileSystem(
+            client_kwargs={'endpoint_url': 'http://127.0.0.1:8001'},
+            key='admin',
+            secret='adminadminadminadmin',
+        )
         kwargs = {
-            'service_name': 's3',
-            's3_client_or_url': 'http://127.0.0.1:8001',
-            'aws_access_key_id': 'admin',
-            'aws_secret_access_key': 'adminadminadminadmin',
+            's3fs_or_url': 'http://127.0.0.1:8001',
+            'key': 'admin',
+            'secret': 'adminadminadminadmin',
             'bucket_name': bucket_name,
         }
     else:
-        s3 = boto3.client('s3', endpoint_url='http://10.0.1.2:11354')
+        s3fs = S3FileSystem(endpoint_url='http://10.0.1.2:11354')
         kwargs = {
-            'service_name': 's3',
-            's3_client_or_url': 'http://10.0.1.2:11354',
+            's3fs_or_url': 'http://10.0.1.2:11354',
             'bucket_name': bucket_name,
         }
-    try:
-        s3.head_bucket(Bucket=bucket_name)
-    except ClientError:
-        s3.create_bucket(Bucket=bucket_name)
+    s3fs.mkdirs(bucket_name, exist_ok=True)
     return kwargs

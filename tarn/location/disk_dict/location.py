@@ -12,16 +12,16 @@ from ...compat import Self, copy_file, remove_file, rmtree
 from ...digest import key_to_relative
 from ...exceptions import CollisionError, StorageCorruption
 from ...interface import Key, MaybeLabels, MaybeValue, PathOrStr, Value
-from ...tools import Locker, SizeTracker, UsageTracker, LabelsStorage
+from ...tools import LabelsStorage, Locker, SizeTracker, UsageTracker
 from ...utils import adjust_permissions, create_folders, get_size, match_buffers, match_files
-from ..interface import Meta, Writable
-from .config import StorageConfig, init_storage, load_config, root_params, CONFIG_NAME
+from ..interface import Location, Meta
+from .config import CONFIG_NAME, StorageConfig, init_storage, load_config, root_params
 
 logger = logging.getLogger(__name__)
 MaybePath = Optional[Path]
 
 
-class DiskDict(Writable):
+class DiskDict(Location):
     def __init__(self, root: PathOrStr, levels: Optional[Sequence[int]] = None):
         root = Path(root)
         config = root / CONFIG_NAME
@@ -65,7 +65,7 @@ class DiskDict(Writable):
 
             key = bytes.fromhex(''.join(file.relative_to(self.root).parts))
             with self.locker.read(key):
-                yield key, self, str(self.root)
+                yield key, self, DiskDictMeta(key, self.usage_tracker, self.labels)
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
@@ -77,7 +77,7 @@ class DiskDict(Writable):
                 if file.is_dir():
                     file = file / 'data'
 
-                self.usage_tracker.update(key)
+                self.touch(key)
                 try:
                     if return_labels:
                         yield file, self.labels.get(key)
@@ -142,7 +142,7 @@ class DiskDict(Writable):
 
                 # metadata
                 self.size_tracker.inc(get_size(file))
-                self.usage_tracker.update(key)
+                self.touch(key)
                 self.labels.update(key, labels)
 
                 yield file
@@ -172,6 +172,13 @@ class DiskDict(Writable):
 
             return True
 
+    def touch(self, key: Key) -> bool:
+        file = self._key_to_path(key)
+        if not file.exists():
+            return False
+        self.usage_tracker.update(key)
+        return True
+
     def _key_to_path(self, key: Key):
         assert key, 'The key must be non-empty'
         return self.root / key_to_relative(key, self.levels)
@@ -195,7 +202,7 @@ class DiskDict(Writable):
 
 
 class DiskDictMeta(Meta):
-    def __init__(self, key, usage, labels):
+    def __init__(self, key: Key, usage: UsageTracker, labels: LabelsStorage):
         self._key, self._usage, self._labels = key, usage, labels
 
     @property

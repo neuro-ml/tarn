@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tarn import DiskDict, Fanout, Level, Levels, StorageCorruption, Writable
+from tarn import DiskDict, Fanout, Level, Levels, Location, StorageCorruption
 
 
 def _mkdir(x):
@@ -24,7 +24,7 @@ def _mkdir(x):
     ),
     lambda x: Fanout(DiskDict(_mkdir(x / 'one')), DiskDict(_mkdir(x / 'two'))),
 ])
-def location(request, temp_dir) -> Writable:
+def location(request, temp_dir) -> Location:
     return request.param(temp_dir)
 
 

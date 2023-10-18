@@ -25,9 +25,12 @@ def test_storage_ssh(storage_factory):
             local.read(load_text, key)
 
         # add a remote
-        both = HashKeyStorage(local._local, get_ssh_location(STORAGE_ROOT))
+        ssh_location = get_ssh_location(STORAGE_ROOT)
+        both = HashKeyStorage(local._local, ssh_location)
         assert both.read(load_text, key) == load_text(__file__)
         local.read(load_text, key)
+        with ssh_location.read(b'123213213332', False) as v:
+            assert v is None
 
 
 def test_wrong_host():

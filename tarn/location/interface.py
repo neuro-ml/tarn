@@ -41,8 +41,6 @@ class Location(ABC):
     def contents(self) -> Iterable[Tuple[Key, Self, Meta]]:
         pass
 
-
-class Writable(Location, ABC):
     @abstractmethod
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         pass
@@ -50,6 +48,24 @@ class Writable(Location, ABC):
     @abstractmethod
     def delete(self, key: Key) -> bool:
         pass
+
+    @abstractmethod
+    def touch(self, key: Key) -> bool:
+        """
+        Update usage date for a given `key`
+        """
+        pass
+
+
+class ReadOnly(Location):
+    def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
+        yield None
+
+    def delete(self, key: Key) -> bool:
+        return False
+
+    def touch(self, key: Key) -> bool:
+        return False
 
 
 Locations = Sequence[Location]

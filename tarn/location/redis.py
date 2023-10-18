@@ -8,10 +8,10 @@ from redis import Redis
 from ..digest import value_to_buffer
 from ..exceptions import CollisionError, StorageCorruption
 from ..interface import Key, MaybeLabels, Meta, Value
-from .interface import Writable
+from .interface import Location
 
 
-class RedisLocation(Writable):
+class RedisLocation(Location):
     def __init__(self, *args, prefix: AnyStr = b'', **kwargs):
         # TODO: legacy mode
         if len(args) == 2 and isinstance(args[1], str) and not prefix:
@@ -41,9 +41,9 @@ class RedisLocation(Writable):
             if content is None:
                 yield
                 return
-            self.update_usage_date(key)
+            self.touch(key)
             if return_labels:
-                labels = self.get_labels(key)
+                labels = self._get_labels(key)
                 with value_to_buffer(self.redis.get(content_key)) as buffer:
                     yield buffer, labels
                     return
@@ -60,8 +60,8 @@ class RedisLocation(Writable):
                 content = self.redis.get(content_key)
                 if content is None:
                     self.redis.set(content_key, value.read())
-                    self.update_labels(key, labels)
-                    self.update_usage_date(key)
+                    self._update_labels(key, labels)
+                    self.touch(key)
                     with value_to_buffer(self.redis.get(content_key)) as buffer:
                         yield buffer
                         return
@@ -70,36 +70,40 @@ class RedisLocation(Writable):
                     raise CollisionError(
                         f'Written value and the new one does not match: {key}'
                     )
-                self.update_labels(key, labels)
-                self.update_usage_date(key)
+                self._update_labels(key, labels)
+                self.touch(key)
                 with value_to_buffer(self.redis.get(content_key)) as buffer:
                     yield buffer
         except StorageCorruption:
             self.delete(key)
 
-    def get_labels(self, key: Key) -> MaybeLabels:
+    def _get_labels(self, key: Key) -> MaybeLabels:
         labels_key = b'labels' + self.prefix + key
         labels_bytes = self.redis.get(labels_key)
         if labels_bytes is None:
             return
         return list(json.loads(labels_bytes))
 
-    def update_labels(self, key: Key, labels: MaybeLabels):
+    def _update_labels(self, key: Key, labels: MaybeLabels):
         labels_key = b'labels' + self.prefix + key
-        old_labels = self.get_labels(key) or []
+        old_labels = self._get_labels(key) or []
         if labels is not None:
             labels = list(set(old_labels).union(labels))
             self.redis.set(labels_key, json.dumps(labels))
 
-    def get_usage_date(self, key: Key) -> Optional[datetime]:
+    def _get_usage_date(self, key: Key) -> Optional[datetime]:
         usage_date_key = b'usage_date' + self.prefix + key
         usage_date = self.redis.get(usage_date_key)
         if usage_date is not None:
             return datetime.fromtimestamp(float(usage_date))
 
-    def update_usage_date(self, key: Key):
+    def touch(self, key: Key):
+        content_key = self.prefix + key
+        if content_key not in self.redis.keys():
+            return False
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.set(usage_date_key, datetime.now().timestamp())
+        return True
 
     def delete(self, key: Key):
         content_key = self.prefix + key
@@ -128,16 +132,16 @@ def _is_url(url):
 
 
 class RedisMeta(Meta):
-    def __init__(self, key, location):
+    def __init__(self, key: str, location: RedisLocation):
         self._key, self._location = key, location
 
     @property
     def last_used(self) -> Optional[datetime]:
-        return self._location.get_usage_date(self._key)
+        return self._location._get_usage_date(self._key)
 
     @property
     def labels(self) -> MaybeLabels:
-        return self._location.get_labels(self._key)
+        return self._location._get_labels(self._key)
 
     def __str__(self):
         return f'{self.last_used}, {self.labels}'
