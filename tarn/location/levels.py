@@ -54,27 +54,29 @@ class Levels(Location):
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
         for config in self._levels:
             location = config.location
-            if is_binary_io(value):
-                offset = value.tell()
-            leave = False
-            with location.write(key, value, labels) as written:
-                if written is not None:
-                    # we must leave the loop after the first successful write
-                    leave = True
-                    yield written
-            # but the context manager might have silenced the error, so we need an extra return here
-            if leave:
-                return
-            if is_binary_io(value) and offset != value.tell():
-                value.seek(offset)
+            if config.write:
+                if is_binary_io(value):
+                    offset = value.tell()
+                leave = False
+                with location.write(key, value, labels) as written:
+                    if written is not None:
+                        # we must leave the loop after the first successful write
+                        leave = True
+                        yield written
+                # but the context manager might have silenced the error, so we need an extra return here
+                if leave:
+                    return
+                if is_binary_io(value) and offset != value.tell():
+                    value.seek(offset)
 
         yield None
 
     def delete(self, key: Key) -> bool:
         deleted = False
         for config in self._levels:
-            if config.location.delete(key):
-                deleted = True
+            if config.write:
+                if config.location.delete(key):
+                    deleted = True
 
         return deleted
 
