@@ -98,9 +98,6 @@ class RedisLocation(Location):
             return datetime.fromtimestamp(float(usage_date))
 
     def touch(self, key: Key):
-        content_key = self.prefix + key
-        if content_key not in self.redis.keys():
-            return False
         usage_date_key = b'usage_date' + self.prefix + key
         self.redis.set(usage_date_key, datetime.now().timestamp())
         return True
