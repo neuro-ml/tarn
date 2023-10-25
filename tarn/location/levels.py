@@ -14,6 +14,7 @@ class Level(NamedTuple):
     location: Location
     write: bool = True
     replicate: bool = True
+    touch: bool = True
     name: Optional[str] = None
 
 
@@ -43,7 +44,7 @@ class Levels(Location):
                                 yield value_copy, labels_copy
                             else:
                                 yield value_copy
-            else:
+            elif config.touch:
                 config.location.touch(key)
         if not read:
             yield None
