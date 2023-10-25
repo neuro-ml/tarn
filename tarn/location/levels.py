@@ -31,24 +31,22 @@ class Levels(Location):
 
     @contextmanager
     def read(self, key: Key, return_labels: bool) -> ContextManager[Union[None, Value, Tuple[Value, MaybeLabels]]]:
+        read = False
         for index, config in enumerate(self._levels):
-            leave = False
-            with config.location.read(key, True) as value:
-                if value is not None:
-                    # we must leave the loop after the first successful read
-                    leave = True
-                    # try to write to a level with higher priority
-                    with self._replicate(key, *value, index) as (value_copy, labels_copy):
-                        if return_labels:
-                            yield value_copy, labels_copy
-                        else:
-                            yield value_copy
-
-            # but the context manager might have silenced the error, so we need an extra return here
-            if leave:
-                return
-
-        yield None
+            if not read:
+                with config.location.read(key, True) as value:
+                    if value is not None:
+                        read = True
+                        # try to write to a level with higher priority
+                        with self._replicate(key, *value, index) as (value_copy, labels_copy):
+                            if return_labels:
+                                yield value_copy, labels_copy
+                            else:
+                                yield value_copy
+            else:
+                config.location.touch(key)
+        if not read:
+            yield None
 
     @contextmanager
     def write(self, key: Key, value: Value, labels: MaybeLabels) -> ContextManager[MaybeValue]:
