@@ -14,7 +14,7 @@ class Level(NamedTuple):
     location: Location
     write: bool = True
     replicate: bool = True
-    touch: bool = True
+    touch: bool = False
     name: Optional[str] = None
 
 
