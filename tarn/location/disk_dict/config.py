@@ -52,7 +52,7 @@ class HashConfig(NoExtra):
 class ToolConfig(NoExtra):
     name: str
     args: Tuple = ()
-    kwargs: Optional[Dict[str, Any]] = Field(None, default_factory=dict)
+    kwargs: Optional[Dict[str, Any]] = Field(..., default_factory=dict)
 
 
 class StorageConfig(NoExtra):
