@@ -27,7 +27,7 @@ except ImportError:
     Self = Any
 # we will try to support both versions 1 and 2 while they are more or less popular
 try:
-    from pydantic import BaseModel as _BaseModel, field_validator as _field_validator, model_validator
+    from pydantic import BaseModel, field_validator as _field_validator, model_validator
 
     def field_validator(*args, always=None, **kwargs):
         # we just ignore `always`
@@ -38,11 +38,6 @@ try:
 
     def model_dump(obj, **kwargs):
         return obj.model_dump(**kwargs)
-
-    class BaseModel(_BaseModel):
-        model_config = {
-            'validate_default': True,
-        }
 
     class NoExtra(BaseModel):
         model_config = {
