@@ -52,13 +52,7 @@ class HashConfig(NoExtra):
 class ToolConfig(NoExtra):
     name: str
     args: Tuple = ()
-    kwargs: Optional[Dict[str, Any]] = None
-
-    @field_validator('kwargs', always=True)
-    def normalize_kwargs(cls, v):
-        if v is None:
-            return {}
-        return v
+    kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class StorageConfig(NoExtra):

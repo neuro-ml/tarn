@@ -32,7 +32,8 @@ class DiskDict(Location):
             config = load_config(root)
 
         if levels is not None and tuple(config.levels) != tuple(levels):
-            raise ValueError(f"The passed levels (levels) don't match with the ones from the config ({config.levels}).")
+            raise ValueError(
+                f"The passed levels ({levels}) don't match with the ones from the config ({config.levels}).")
 
         self.levels = config.levels
         # TODO: deprecate
@@ -60,9 +61,8 @@ class DiskDict(Location):
         tools = self.root / 'tools'
         config = self.root / 'config.yml'
         for file in self.root.glob('/'.join('*' * len(self.levels))):
-            if file == config or file.is_relative_to(tools):
+            if file == config or file.is_relative_to(tools) or file.is_relative_to(self.tmp):
                 continue
-
             key = bytes.fromhex(''.join(file.relative_to(self.root).parts))
             with self.locker.read(key):
                 yield key, self, DiskDictMeta(key, self.usage_tracker, self.labels)
@@ -156,7 +156,6 @@ class DiskDict(Location):
         with self.locker.write(key):
             if not file.exists():
                 return False
-
             # TODO: don't need this if no tracker is used
             if file.is_dir():
                 # TODO: legacy
@@ -212,6 +211,9 @@ class DiskDictMeta(Meta):
     @property
     def labels(self) -> MaybeLabels:
         return self._labels.get(self._key)
+
+    def __str__(self):
+        return f"{self.last_used}, {self.labels}"
 
 
 def _is_pathlike(x):
