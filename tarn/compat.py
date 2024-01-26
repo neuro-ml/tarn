@@ -27,36 +27,35 @@ except ImportError:
     Self = Any
 # we will try to support both versions 1 and 2 while they are more or less popular
 try:
-    from pydantic import BaseModel, field_validator as _field_validator, model_validator
-
+    from pydantic import BaseModel as _BaseModel, field_validator as _field_validator, model_validator
 
     def field_validator(*args, always=None, **kwargs):
         # we just ignore `always`
         return _field_validator(*args, **kwargs)
 
-
     def model_validate(cls, data):
         return cls.model_validate(data)
-
 
     def model_dump(obj, **kwargs):
         return obj.model_dump(**kwargs)
 
+    class BaseModel(_BaseModel):
+        model_config = {
+            'validate_default': True,
+        }
 
     class NoExtra(BaseModel):
         model_config = {
-            'extra': 'forbid'
+            'extra': 'forbid',
         }
 
 
 except ImportError:
     from pydantic import BaseModel, root_validator, validator as _field_validator
 
-
     def model_validator(mode: str):
         assert mode == 'before'
         return root_validator(pre=True)
-
 
     def field_validator(*args, mode: str = 'after', **kwargs):
         # we just ignore `always`
@@ -65,14 +64,11 @@ except ImportError:
             kwargs['pre'] = True
         return _field_validator(*args, **kwargs)
 
-
     def model_validate(cls, data):
         return cls.parse_obj(data)
 
-
     def model_dump(obj, **kwargs):
         return obj.dict(**kwargs)
-
 
     class NoExtra(BaseModel):
         class Config:
@@ -87,10 +83,8 @@ if platform.system() == 'Windows':
 
         shutil.rmtree(path, ignore_errors=ignore_errors, onerror=remove_readonly)
 
-
     def get_path_group(path: PathOrStr) -> Union[int, None]:
         pass
-
 
     def remove_file(path: PathOrStr):
         os.chmod(path, stat.S_IWRITE)
@@ -99,7 +93,6 @@ if platform.system() == 'Windows':
 else:
     rmtree = shutil.rmtree
     remove_file = os.remove
-
 
     def get_path_group(path: PathOrStr) -> Union[int, None]:
         return Path(path).stat().st_gid
