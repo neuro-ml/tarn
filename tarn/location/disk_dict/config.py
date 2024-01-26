@@ -22,7 +22,6 @@ class HashConfig(NoExtra):
 
     @model_validator(mode='before')
     def normalize_kwargs(cls, values):
-        print('kek', values)
         kwargs = {}
         for field_name in list(values):
             if field_name not in ('name', 'kwargs'):
