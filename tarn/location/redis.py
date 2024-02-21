@@ -13,7 +13,7 @@ from .interface import Location
 
 class RedisLocation(Location):
     def __init__(self, *args, prefix: AnyStr = b'', keep_labels: bool = False,
-                 keep_usage: bool = False, ttl: int | None = None, **kwargs):
+                 keep_usage: bool = False, ttl: Optional[int] = None, **kwargs):
         # TODO: legacy mode
         if len(args) == 2 and isinstance(args[1], str) and not prefix:
             *args, prefix = args
