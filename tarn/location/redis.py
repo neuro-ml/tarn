@@ -12,7 +12,8 @@ from .interface import Location
 
 
 class RedisLocation(Location):
-    def __init__(self, *args, prefix: AnyStr = b'', **kwargs):
+    def __init__(self, *args, prefix: AnyStr = b'', keep_labels: bool = False,
+                 keep_usage: bool = False, ttl: int | None = None, **kwargs):
         # TODO: legacy mode
         if len(args) == 2 and isinstance(args[1], str) and not prefix:
             *args, prefix = args
@@ -27,6 +28,9 @@ class RedisLocation(Location):
             prefix = prefix.encode()
         self.redis = redis
         self.prefix = prefix
+        self.keep_labels = keep_labels
+        self.keep_usage = keep_usage
+        self.ttl = ttl
 
     def contents(self) -> Iterable[Tuple[Key, Any, Meta]]:
         for raw_key in self.redis.scan_iter(match=self.prefix + b'*'):
@@ -46,9 +50,13 @@ class RedisLocation(Location):
                 labels = self._get_labels(key)
                 with value_to_buffer(self.redis.get(content_key)) as buffer:
                     yield buffer, labels
+                    if self.ttl is not None:
+                        self.redis.expire(content_key, self.ttl)
                     return
             with value_to_buffer(self.redis.get(content_key)) as buffer:
                 yield buffer
+                if self.ttl is not None:
+                    self.redis.expire(content_key, self.ttl)
         except StorageCorruption:
             self.delete(key)
 
@@ -59,11 +67,13 @@ class RedisLocation(Location):
             with value_to_buffer(value) as value:
                 content = self.redis.get(content_key)
                 if content is None:
-                    self.redis.set(content_key, value.read())
+                    self.redis.set(content_key, value.read(), ex=self.ttl)
                     self._update_labels(key, labels)
                     self.touch(key)
                     with value_to_buffer(self.redis.get(content_key)) as buffer:
                         yield buffer
+                        if self.ttl is not None:
+                            self.redis.expire(content_key, self.ttl)
                         return
                 old_content = self.redis.get(content_key)
                 if old_content != value.read():
@@ -78,28 +88,39 @@ class RedisLocation(Location):
             self.delete(key)
 
     def _get_labels(self, key: Key) -> MaybeLabels:
+        if not self.keep_labels:
+            return None
         labels_key = b'labels' + self.prefix + key
         labels_bytes = self.redis.get(labels_key)
         if labels_bytes is None:
             return
+        if self.ttl is not None:
+            self.redis.expire(labels_key, self.ttl)
         return list(json.loads(labels_bytes))
 
     def _update_labels(self, key: Key, labels: MaybeLabels):
-        labels_key = b'labels' + self.prefix + key
-        old_labels = self._get_labels(key) or []
-        if labels is not None:
-            labels = list(set(old_labels).union(labels))
-            self.redis.set(labels_key, json.dumps(labels))
+        if self.keep_labels:
+            labels_key = b'labels' + self.prefix + key
+            old_labels = self._get_labels(key) or []
+            if labels is not None:
+                labels = list(set(old_labels).union(labels))
+                self.redis.set(labels_key, json.dumps(labels), ex=self.ttl)
 
     def _get_usage_date(self, key: Key) -> Optional[datetime]:
+        if not self.keep_usage:
+            return
         usage_date_key = b'usage_date' + self.prefix + key
         usage_date = self.redis.get(usage_date_key)
         if usage_date is not None:
+            if self.ttl is not None:
+                self.redis.expire(usage_date_key, self.ttl)
             return datetime.fromtimestamp(float(usage_date))
 
     def touch(self, key: Key):
+        if not self.keep_usage:
+            return False
         usage_date_key = b'usage_date' + self.prefix + key
-        self.redis.set(usage_date_key, datetime.now().timestamp())
+        self.redis.set(usage_date_key, datetime.now().timestamp(), ex=self.ttl)
         return True
 
     def delete(self, key: Key):
@@ -121,11 +142,7 @@ class RedisLocation(Location):
 
 
 def _is_url(url):
-    return (
-            url.startswith("redis://")
-            or url.startswith("rediss://")
-            or url.startswith("unix://")
-    )
+    return url.startswith("redis://") or url.startswith("rediss://") or url.startswith("unix://")
 
 
 class RedisMeta(Meta):
