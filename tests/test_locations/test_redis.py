@@ -9,7 +9,7 @@ from tarn import HashKeyStorage, ReadError, RedisLocation
 
 @pytest.mark.redis
 def test_storage_redis(redis_hostname):
-    location = RedisLocation(redis_hostname, prefix='___test___')
+    location = RedisLocation(redis_hostname, prefix='___test___', keep_labels=True)
     storage = HashKeyStorage(location, algorithm=blake2b)
     key = storage.write(Path(__file__), labels=('IRA', 'LABS'))
     key = storage.write(Path(__file__), labels=('IRA1', 'LABS'))
