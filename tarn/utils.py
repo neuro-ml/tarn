@@ -8,6 +8,7 @@ from typing import BinaryIO, Union
 from .compat import set_path_attrs
 from .interface import Value
 
+
 # TODO: legacy
 PathLike = Union[Path, str]
 
@@ -58,12 +59,12 @@ def match_buffers(first: BinaryIO, second: BinaryIO, context: str):
 
 
 @contextmanager
-def value_to_buffer(value: Union[Value, bytes]):
+def value_to_buffer(value: Union[Value, bytes], mode: str = 'rb'):
     if isinstance(value, bytes):
         yield BytesIO(value)
 
     elif isinstance(value, (str, os.PathLike)):
-        with open(value, 'rb') as file:
+        with open(value, mode) as file:
             yield file
 
     else:
