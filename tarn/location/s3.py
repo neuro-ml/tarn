@@ -104,7 +104,7 @@ class S3(Location):
             if len(tags_dict) <= 10:
                 self.s3.put_tags(path, tags_dict)
             else:
-                warnings.warn(f'S3 tags are capped at 10. New labels were ignored for {self._path_to_key(path)}'
+                warnings.warn(f'S3 tags are capped at 10. New labels were ignored for {self._path_to_key(path)}. '
                               f'Existing labels: {self._get_labels(path)}. Labels to add: {labels}.')
 
     def _get_labels(self, path: str) -> MaybeLabels:
