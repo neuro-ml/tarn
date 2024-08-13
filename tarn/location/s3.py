@@ -101,7 +101,10 @@ class S3(Location):
         if labels is not None:
             tags_dict = self.s3.get_tags(path)
             tags_dict.update({f'_{label}': f'_{label}' for label in labels})
-            self.s3.put_tags(path, tags_dict)
+            if len(tags_dict) <= 10:
+                self.s3.put_tags(path, tags_dict)
+            else:
+                warnings.warn('S3 tags are capped at 10. New labels were ignored.')
 
     def _get_labels(self, path: str) -> MaybeLabels:
         tags_dict = self.s3.get_tags(path)
