@@ -68,8 +68,10 @@ jobs:
           cd ..
           echo $MODULE_PARENT
           echo "MODULE_PARENT=$(echo $MODULE_PARENT)" >> $GITHUB_ENV
-
+      
+      - uses: docker/setup-compose-action@v1
       - name: Setup docker-compose services
+        
         run: |
           mkdir -p /tmp/http/storage
           docker-compose -f tests/assets/docker-compose.yml up -d
