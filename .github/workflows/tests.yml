@@ -88,7 +88,7 @@ jobs:
           sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}-pydantic1.xml
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reports-${{ matrix.python-version }}-${OS}
           path: reports/*.xml
@@ -130,7 +130,7 @@ jobs:
           pytest tests -m "not redis and not ssh and not nginx and not s3" --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reports-${{ matrix.python-version }}-${OS}
           path: reports/*.xml
