@@ -103,7 +103,7 @@ class S3(Location):
             new_labels = {f'_{label}': f'_{label}' for label in labels}
             if set(new_labels.keys()) <= set(tags_dict.keys()):
                 return
-            tags_dict |= new_labels
+            tags_dict.update(new_labels)
             if len(tags_dict) <= 10:
                 self.s3.put_tags(path, tags_dict)
             else:
