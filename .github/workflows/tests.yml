@@ -74,7 +74,7 @@ jobs:
         
         run: |
           mkdir -p /tmp/http/storage
-          docker-compose -f tests/assets/docker-compose.yml up -d
+          docker compose -f tests/assets/docker-compose.yml up -d
 
       - name: Test with pytest
         run: |
