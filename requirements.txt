@@ -1,6 +1,6 @@
 numpy
 cloudpickle>=2.0.0,<2.3.0
-paramiko==2.*
+paramiko>=3.5.0,<4.0.0
 scp
 tqdm
 redis>=4.0.0
