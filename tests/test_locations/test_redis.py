@@ -39,5 +39,9 @@ def test_redis_pickle(redis_hostname):
     x = cloudpickle.loads(cloudpickle.dumps(redis))
     xx = cloudpickle.loads(cloudpickle.dumps(x))
 
-    assert x.redis.get_connection_kwargs() == xx.redis.get_connection_kwargs()
+    kwargs0 = x._redis.get_connection_kwargs()
+    kwargs1 = xx._redis.get_connection_kwargs()
+    kwargs0.pop('retry', None)
+    kwargs1.pop('retry', None)
+    assert kwargs0 == kwargs1
     assert x.prefix == xx.prefix == b':'

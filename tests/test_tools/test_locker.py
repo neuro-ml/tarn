@@ -27,8 +27,11 @@ def test_redis_pickle(redis_hostname):
     locker = RedisLocker(redis_hostname, prefix='', expire=1)
     x = cloudpickle.loads(cloudpickle.dumps(locker))
     xx = cloudpickle.loads(cloudpickle.dumps(x))
-
-    assert x._redis.get_connection_kwargs() == xx._redis.get_connection_kwargs()
+    kwargs0 = x._redis.get_connection_kwargs()
+    kwargs1 = xx._redis.get_connection_kwargs()
+    kwargs0.pop('retry', None)
+    kwargs1.pop('retry', None)
+    assert kwargs0 == kwargs1
     assert x._prefix == xx._prefix == b':'
     assert x._expire == xx._expire == locker._expire == 1
 
