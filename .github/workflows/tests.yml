@@ -8,12 +8,12 @@ env:
 
 jobs:
   test-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       OS: ubuntu
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
 
     services:
       redis:
@@ -42,6 +42,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Ensure setuptools, and wheel are installed
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+      
       - name: Build the package
         run: |
           python setup.py sdist
@@ -64,11 +68,13 @@ jobs:
           cd ..
           echo $MODULE_PARENT
           echo "MODULE_PARENT=$(echo $MODULE_PARENT)" >> $GITHUB_ENV
-
+      
+      - uses: docker/setup-compose-action@v1
       - name: Setup docker-compose services
+        
         run: |
           mkdir -p /tmp/http/storage
-          docker-compose -f tests/assets/docker-compose.yml up -d
+          docker compose -f tests/assets/docker-compose.yml up -d
 
       - name: Test with pytest
         run: |
@@ -88,14 +94,16 @@ jobs:
           sed -i -e "s|$(echo $MODULE_PARENT/ | tr "/" .)||g" reports/coverage-${{ matrix.python-version }}-${OS}-pydantic1.xml
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: reports-${{ matrix.python-version }}-${OS}
+          name: reports-${{ matrix.python-version }}-${{ runner.os }}
           path: reports/*.xml
         if: ${{ always() }}
 
       - name: Upload coverage results
         uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           fail_ci_if_error: true
           files: reports/coverage-*.xml
@@ -107,7 +115,7 @@ jobs:
       OS: windows
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11' ]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v3
@@ -115,6 +123,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Ensure setuptools, and wheel are installed
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
 
       - name: Build the package
         run: |
@@ -130,8 +141,8 @@ jobs:
           pytest tests -m "not redis and not ssh and not nginx and not s3" --junitxml=reports/junit-${{ matrix.python-version }}-${OS}.xml --cov-branch
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: reports-${{ matrix.python-version }}-${OS}
+          name: reports-${{ matrix.python-version }}-${{ runner.os }}
           path: reports/*.xml
         if: ${{ always() }}

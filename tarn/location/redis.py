@@ -135,7 +135,9 @@ class RedisLocation(Location):
         return cls(prefix=prefix, **kwargs)
 
     def __reduce__(self):
-        return self._from_args, (self.prefix, self.redis.get_connection_kwargs())
+        connection_kwargs = self.redis.get_connection_kwargs()
+        connection_kwargs.pop('retry', None)
+        return self._from_args, (self.prefix, connection_kwargs)
 
     def __eq__(self, other):
         return isinstance(other, RedisLocation) and self.__reduce__() == other.__reduce__()
